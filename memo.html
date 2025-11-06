@@ -211,7 +211,8 @@
         // 4. JSON -> Base64로 인코딩
         try {
             const jsonString = JSON.stringify(state);
-            const base64String = btoa(jsonString); // btoa: Binary To ASCII
+            const utf8EncodedString = encodeURIComponent(jsonString);   // utf8 변환 인코딩 먼저
+            const base64String = btoa(utf8EncodedString); // btoa: Binary To ASCII
 
             // 5. URL 해시에 적용
             window.location.hash = base64String;
@@ -277,17 +278,13 @@
             // 3. 활성 탭 복원
             if (state.activeSectorId) {
 
-                console.log(state.activeSectorId)
-                // 간단한 버전: ID로 찾기
                 const sectorToActivate = document.getElementById(state.activeSectorId);
                 if (sectorToActivate) {
-                    // (changeSector 함수를 재활용하는 것이 좋습니다)
                     btn.changeSector(state.activeSectorId, state.activeMenuId);
                 }
             }
 
-            // 4. itemCounter 업데이트 (중요!)
-            // 전역 itemCounter를 로드된 개수 + 1로 설정합니다.
+            // 전역 itemCounter를 로드된 개수 + 1로 설정
             itemCounter = state.sectors.length + 1;
 
 
