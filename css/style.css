@@ -369,11 +369,60 @@ body {
     display: none;
 }
 .content-sector textarea {
-    width: 100%;
-    height: 200px;
+    min-height: 40vh;
+    min-width: 40vh;
     box-sizing: border-box;
+    resize: auto;
 }
 
 .content-sector.active {
     display: block;
+}
+
+
+.sector-grid-container {
+    display: grid;
+    /* 2개의 컬럼 (왼쪽 1fr, 오른쪽 1fr) */
+    grid-template-columns: 1fr 1fr;
+    /* 2개의 로우 (위쪽 1fr, 아래쪽 1fr) */
+    grid-template-rows: 1fr 1fr;
+    gap: 8px; /* 패널 사이의 간격 */
+
+    height: 100vh; /* 부모(main)를 꽉 채움 */
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box; /* 패딩이 크기에 포함되도록 */
+}
+
+.memo-area {
+    grid-column: 1; /* 첫 번째 컬럼 */
+    grid-row: 1;    /* 첫 번째 로우 */
+    overflow: hidden;
+}
+
+.memo-area textarea{
+    width: 100%;
+    min-width: 50vh;
+    height: 100%;
+    box-sizing: border-box;
+    resize: auto;
+}
+
+.result-area {
+    grid-column: 2; /* 첫 번째 컬럼 */
+    grid-row: 2;    /* 두 번째 로우 */
+}
+
+.description-area {
+    grid-column: 2;         /* 두 번째 컬럼 */
+    grid-row: 1 / span 2; /* 1번 로우에서 2칸을 차지 (1 ~ 3) */
+    overflow: hidden;
+}
+
+.description-area textarea{
+    width: 100%;
+    min-width: 50vh;
+    height: 100%;
+    box-sizing: border-box;
+    resize: auto;
 }
