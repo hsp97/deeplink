@@ -35,7 +35,8 @@ body {
     background: #202020;
     padding: 20px;
     transition: width 0.3s;
-    overflow: hidden;
+    overflow: visible;
+    overflow-x: hidden; /* 추가됨: 가로 스크롤만 숨김 */
     height: 100%;
     flex-grow: 1;
 }
@@ -52,9 +53,19 @@ body {
     cursor: pointer;
 }
 
+/* 추가됨: collapsed 상태에서 h2 숨김 */
+.sidebar.collapsed h2 {
+    display: none;
+}
+
+/* 추가됨: collapsed 상태에서 input-group 숨김 */
+.sidebar.collapsed .input-group {
+    display: none;
+}
+
 .mainview {
     flex: 1;
-    display: inline-flex;
+    display: flex;
 }
 
 .content {
@@ -98,7 +109,6 @@ body {
     color: #aaa;
 }
 
-/* 추가 버튼 */
 .add-button {
     position: absolute;
     top: 20px;
@@ -123,7 +133,6 @@ body {
     transform: scale(1.1);
 }
 
-/* 모달 */
 .modal {
     display: none;
     position: fixed;
@@ -306,6 +315,7 @@ body {
     color: white;
     transition: background 0.2s;
     border-radius: 6px;
+    position: relative; /* 추가됨: 툴팁 위치 기준 */
 }
 
 .menu-link:hover {
@@ -314,6 +324,77 @@ body {
 
 .menu-icon {
     margin-right: 10px;
+    font-size: 18px; /* 추가됨: 기본 아이콘 크기 */
+    transition: all 0.3s; /* 추가됨: 부드러운 전환 */
+}
+
+/* 추가됨: collapsed 상태에서 텍스트 숨김 */
+.sidebar.collapsed .menu-link div {
+    display: none;
+}
+
+/* 추가됨: collapsed 상태에서 아이콘 중앙 정렬 및 크기 증가 */
+.sidebar.collapsed .menu-icon {
+    margin: 0;
+    font-size: 24px;
+}
+
+/* 추가됨: collapsed 상태에서 메뉴 링크 중앙 정렬 */
+.sidebar.collapsed .menu-link {
+    justify-content: center;
+    padding: 10px;
+}
+
+/* 추가됨: 툴팁 스타일 */
+.sidebar.collapsed .menu-link::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 10px); /* 메뉴 오른쪽에서 10px 떨어진 위치 */
+    top: 50%;
+    transform: translateY(-50%);
+    background: #282828;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 14px;
+    pointer-events: none; /* 마우스 이벤트 무시 */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* 추가됨: 툴팁 화살표 */
+.sidebar.collapsed .menu-link::before {
+    content: '';
+    position: absolute;
+    left: calc(100% + 5px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 5px 5px 0;
+    border-color: transparent #282828 transparent transparent;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1001;
+}
+
+/* 추가됨: 호버 시 툴팁 표시 */
+.sidebar.collapsed .menu-link:hover::after,
+.sidebar.collapsed .menu-link:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 추가됨: menu-toggle도 툴팁 적용 */
+.sidebar.collapsed .menu-toggle::after {
+    content: attr(data-tooltip);
 }
 
 .menu-sub {
@@ -326,7 +407,6 @@ body {
     display: block;
 }
 
-/* 스크롤바 스타일 */
 .playlist-list::-webkit-scrollbar {
     width: 8px;
 }
@@ -348,13 +428,12 @@ body {
 .input-group {
     display: flex;
     align-items: center;
-    margin-bottom: 10px; /* 목록과 간격 띄우기 */
+    margin-bottom: 10px;
 }
 
-/* 입력창이 남은 공간을 모두 차지하도록 함 */
 .input-group input {
-    flex-grow: 1; /* 남은 공간을 모두 차지 */
-    margin-right: 8px; /* 버튼과의 간격 */
+    flex-grow: 1;
+    margin-right: 8px;
     padding: 5px;
 }
 
@@ -364,65 +443,120 @@ body {
     color: #0056b3;
 }
 
-
 .content-sector {
     display: none;
-}
-.content-sector textarea {
-    min-height: 40vh;
-    min-width: 40vh;
-    box-sizing: border-box;
-    resize: auto;
+    width: 100%;
+    height: 100%;
 }
 
 .content-sector.active {
-    display: block;
+    display: flex;
 }
 
-
+/* 변경됨: 스플리터 기능을 위해 grid 대신 flex 사용 */
 .sector-grid-container {
-    display: grid;
-    /* 2개의 컬럼 (왼쪽 1fr, 오른쪽 1fr) */
-    grid-template-columns: 1fr 1fr;
-    /* 2개의 로우 (위쪽 1fr, 아래쪽 1fr) */
-    grid-template-rows: 1fr 1fr;
-    gap: 8px; /* 패널 사이의 간격 */
-
-    height: 100vh; /* 부모(main)를 꽉 채움 */
+    display: flex;
+    height: 100vh;
     width: 100%;
     padding: 8px;
-    box-sizing: border-box; /* 패딩이 크기에 포함되도록 */
+    box-sizing: border-box;
 }
 
-.memo-area {
-    grid-column: 1; /* 첫 번째 컬럼 */
-    grid-row: 1;    /* 첫 번째 로우 */
+/* 추가됨: 왼쪽 컨테이너 (Memo + Result) */
+.left-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 200px;
+}
+
+/* 추가됨: 오른쪽 컨테이너 (Description) */
+.right-container {
+    flex: 1;
+    min-width: 200px;
     overflow: hidden;
 }
 
-.memo-area textarea{
+/* 변경됨: 각 영역 스타일 조정 */
+.memo-area {
+    flex: 1;
+    overflow: hidden;
+    min-height: 100px;
+}
+
+.memo-area textarea {
     width: 100%;
-    min-width: 50vh;
     height: 100%;
     box-sizing: border-box;
-    resize: auto;
+    resize: none; /* 변경됨: 스플리터로 조절하므로 resize 비활성화 */
+    background: #282828;
+    color: white;
+    border: 1px solid #404040;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
 }
 
 .result-area {
-    grid-column: 2; /* 첫 번째 컬럼 */
-    grid-row: 2;    /* 두 번째 로우 */
+    flex: 1;
+    overflow: auto;
+    min-height: 100px;
+    background: #202020;
+    padding: 10px;
+    border: 1px solid #404040;
+}
+
+.result-area pre {
+    margin: 0;
+    color: #1db954;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
 }
 
 .description-area {
-    grid-column: 2;         /* 두 번째 컬럼 */
-    grid-row: 1 / span 2; /* 1번 로우에서 2칸을 차지 (1 ~ 3) */
+    height: 100%;
     overflow: hidden;
 }
 
-.description-area textarea{
+.description-area textarea {
     width: 100%;
-    min-width: 50vh;
     height: 100%;
     box-sizing: border-box;
-    resize: auto;
+    resize: none; /* 변경됨: 스플리터로 조절하므로 resize 비활성화 */
+    background: #282828;
+    color: white;
+    border: 1px solid #404040;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+/* 추가됨: 스플리터 스타일 */
+.splitter {
+    background: #404040;
+    position: relative;
+    z-index: 10;
+}
+
+.splitter:hover {
+    background: #1db954;
+}
+
+.splitter.active {
+    background: #1ed760;
+}
+
+/* 추가됨: 가로 스플리터 (Memo와 Result 사이) */
+.splitter-horizontal {
+    height: 4px;
+    cursor: row-resize;
+    width: 100%;
+}
+
+/* 추가됨: 세로 스플리터 (왼쪽과 오른쪽 사이) */
+.splitter-vertical {
+    width: 4px;
+    cursor: col-resize;
+    height: 100%;
 }
