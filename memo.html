@@ -19,12 +19,12 @@
             <h2>clone</h2>
             <ul class="menu">
                 <li class="menu-item open">
-                    <div class="menu-link menu-toggle">
+                    <div class="menu-link menu-toggle" data-tooltip="리스트 관리">
                         <span class="menu-icon">📁</span>
                         <div>리스트 관리</div>
                     </div>
                     <div class="input-group">
-                        <button class="btn btn-primary" onclick="btn.add()" style="padding: 5px 10px; font-size: 16px;">+</button>
+                        <button class="btn btn-primary btn-add" onclick="btn.add()">+</button>
                         <input class="input-tag" id="listName" value=""/>
                     </div>
                     <ul class="menu-sub">
@@ -35,7 +35,7 @@
         </nav>
     </div>
 
-    <div style="flex-grow: 1;">
+    <div>
         <div>
             <header class="topbar">
                 <div class="topbar_menu" href="test.html">메뉴 1</div>
@@ -109,7 +109,6 @@
         rightContainer.style.flex = '1 0 0';
 
         horizontalSplitter.addEventListener('mousedown', (e) => {
-            console.log("11");
             isResizing = true;
             currentSplitter = 'horizontal';
             horizontalSplitter.classList.add('active');
@@ -226,6 +225,7 @@
             const a = document.createElement('a');
             a.href = '#';
             a.className = 'menu-link';
+            a.setAttribute('data-tooltip',itemName)
             a.id = menuID;
 
             a.addEventListener('click', (event) => {
@@ -369,6 +369,7 @@
                 const a = document.createElement('a');
                 a.href = '#';
                 a.className = 'menu-link';
+                a.setAttribute('data-tooltip', sector.name);
                 a.addEventListener('click', (e) => {
                     e.preventDefault();
                     btn.changeSector(sector.id, a);

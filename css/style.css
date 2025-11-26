@@ -36,13 +36,19 @@ body {
     padding: 20px;
     transition: width 0.3s;
     overflow: visible;
-    overflow-x: hidden; /* 추가됨: 가로 스크롤만 숨김 */
     height: 100%;
     flex-grow: 1;
 }
 
 .sidebar.collapsed {
     width: 60px;
+}
+
+.sidebar h2,
+.sidebar .menu-link div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar button {
@@ -66,6 +72,10 @@ body {
 .mainview {
     flex: 1;
     display: flex;
+}
+
+.mainview > div:last-child {
+    flex-grow: 1; /* 인라인 스타일을 CSS로 이동 */
 }
 
 .content {
@@ -362,7 +372,7 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
-    z-index: 1000;
+    z-index: 9999;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
@@ -384,6 +394,44 @@ body {
     transition: opacity 0.3s, visibility 0.3s;
     z-index: 1001;
 }
+
+.sidebar:not(.collapsed) .menu-link:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 15px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #282828;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 14px;
+    pointer-events: none;
+    opacity: 1;
+    visibility: visible;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* 추가됨: collapsed 아닐 때 툴팁 화살표 */
+.sidebar:not(.collapsed) .menu-link:hover::before {
+    content: '';
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 6px 6px 0;
+    border-color: transparent #282828 transparent transparent;
+    pointer-events: none;
+    opacity: 1;
+    visibility: visible;
+    z-index: 9999;
+}
+
 
 /* 추가됨: 호버 시 툴팁 표시 */
 .sidebar.collapsed .menu-link:hover::after,
@@ -431,10 +479,22 @@ body {
     margin-bottom: 10px;
 }
 
-.input-group input {
+.input-group .btn-add { /* 추가된 클래스 */
+    padding: 5px 10px;
+    font-size: 16px;
+}
+
+.input-group .input-tag { /* 기존 .input-group input 대신 더 구체적인 선택자 사용 */
     flex-grow: 1;
     margin-right: 8px;
     padding: 5px;
+    width: 80%; /* HTML 인라인 스타일에서 이동 */
+
+    /* 아래는 .input-group input의 원래 스타일. 필요에 따라 통합 */
+    background: #282828;
+    color: white;
+    border: 1px solid #404040;
+    border-radius: 4px;
 }
 
 .menu-link.active {
@@ -484,19 +544,6 @@ body {
     min-height: 100px;
 }
 
-.memo-area textarea {
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    resize: none; /* 변경됨: 스플리터로 조절하므로 resize 비활성화 */
-    background: #282828;
-    color: white;
-    border: 1px solid #404040;
-    padding: 10px;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-}
-
 .result-area {
     flex: 1;
     overflow: auto;
@@ -514,16 +561,12 @@ body {
     white-space: pre-wrap;
 }
 
-.description-area {
-    height: 100%;
-    overflow: hidden;
-}
-
-.description-area textarea {
+/* .memo-area textarea 와 .description-area textarea 의 공통 속성 통합 */
+.content-sector textarea {
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-    resize: none; /* 변경됨: 스플리터로 조절하므로 resize 비활성화 */
+    resize: none;
     background: #282828;
     color: white;
     border: 1px solid #404040;
@@ -532,28 +575,29 @@ body {
     font-size: 14px;
 }
 
+.description-area {
+    height: 100%;
+    overflow: hidden;
+}
+
 /* 추가됨: 스플리터 스타일 */
 .splitter {
     background: #404040;
     position: relative;
     z-index: 10;
 }
-
 .splitter:hover {
     background: #1db954;
 }
-
 .splitter.active {
     background: #1ed760;
 }
-
 /* 추가됨: 가로 스플리터 (Memo와 Result 사이) */
 .splitter-horizontal {
     height: 4px;
     cursor: row-resize;
     width: 100%;
 }
-
 /* 추가됨: 세로 스플리터 (왼쪽과 오른쪽 사이) */
 .splitter-vertical {
     width: 4px;
