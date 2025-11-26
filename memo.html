@@ -73,15 +73,21 @@
         // 변경됨: 디바운싱 추가 (500ms)
         mainContent.addEventListener('input', (event) => {
             if (event.target.tagName === 'TEXTAREA') {
+                const sectorElement = event.target.closest('.content-sector');
+
                 clearTimeout(saveTimer);
                 saveTimer = setTimeout(() => {
                     saveStateToUrl();
+                    // --- 추가: 렌더링 호출 ---
+                    renderCode(sectorElement);
                 }, 500);
             }
         });
 
         // 추가됨: 스플리터 초기화
         initSplitters();
+        // --- 추가: 초기 로드 시 모든 섹터 렌더링 ---
+        document.querySelectorAll('.content-sector').forEach(renderCode);
     });
 
     // 추가됨: 개별 섹터의 스플리터 초기화
@@ -90,8 +96,10 @@
         const verticalSplitter = sectorElement.querySelector('.splitter-vertical');
         const leftContainer = sectorElement.querySelector('.left-container');
         const memoArea = sectorElement.querySelector('.memo-area');
-        const resultArea = sectorElement.querySelector('.result-area');
+        const descriptionArea = sectorElement.querySelector('.description-area');
         const rightContainer = sectorElement.querySelector('.right-container');
+
+        const resultIframe = sectorElement.querySelector('.result-iframe'); // 추가
 
         let isResizing = false;
         let currentSplitter = null;
@@ -108,7 +116,7 @@
 
         // 초기 비율 설정
         memoArea.style.flex = '1 0 0';
-        resultArea.style.flex = '1 0 0';
+        descriptionArea.style.flex = '1 0 0';
         leftContainer.style.flex = '1 0 0';
         rightContainer.style.flex = '1 0 0';
 
@@ -117,13 +125,15 @@
             currentSplitter = 'horizontal';
             horizontalSplitter.classList.add('active');
 
+            resultIframe.classList.add('dragging'); // 추가
+
             startY = e.clientY;
             const memoHeight = memoArea.getBoundingClientRect().height;
-            const resultHeight = resultArea.getBoundingClientRect().height;
-            const totalHeight = memoHeight + resultHeight;
+            const descriptionHeight = descriptionArea.getBoundingClientRect().height;
+            const totalHeight = memoHeight + descriptionHeight;
 
             startMemoRatio = memoHeight / totalHeight;
-            startResultRatio = resultHeight / totalHeight;
+            startResultRatio = descriptionHeight / totalHeight;
 
             e.preventDefault();
         });
@@ -132,6 +142,8 @@
             isResizing = true;
             currentSplitter = 'vertical';
             verticalSplitter.classList.add('active');
+
+            resultIframe.classList.add('dragging'); // 추가
 
             startX = e.clientX;
             const leftWidth = leftContainer.getBoundingClientRect().width;
@@ -155,6 +167,7 @@
                 isResizing = false;
                 horizontalSplitter.classList.remove('active');
                 verticalSplitter.classList.remove('active');
+                resultIframe.classList.remove('dragging'); // 추가
                 currentSplitter = null;
             }
         });
@@ -174,7 +187,7 @@
 
                     if (newMemoRatio > 0.1 && newMemoRatio < 0.9) {
                         memoArea.style.flex = `${newMemoRatio} 0 0`;
-                        resultArea.style.flex = `${newResultRatio} 0 0`;
+                        descriptionArea.style.flex = `${newResultRatio} 0 0`;
                     }
                 } else if (currentSplitter === 'vertical') {
                     const containerWidth = sectorElement.querySelector('.sector-grid-container')
@@ -213,6 +226,7 @@
         document.querySelector('.sidebar').classList.toggle('collapsed');
     }
 
+    // 리스트 추가 및 변경
     const btn = {
         add : function(){
             const itemName = listNameInput.value.trim();
@@ -267,14 +281,14 @@
                             <textarea class="memo-input" placeholder="코드를 입력하세요..."></textarea>
                         </div>
                         <div class="splitter splitter-horizontal"></div>
-                        <div class="result-area">
-                            <pre class="result-output"></pre>
+                        <div class="description-area">
+                            <textarea class="description-input" placeholder="전체적인 설명을 입력하세요..."></textarea>
                         </div>
                     </div>
                     <div class="splitter splitter-vertical"></div>
                     <div class="right-container">
-                        <div class="description-area">
-                            <textarea class="description-input" placeholder="전체적인 설명을 입력하세요..."></textarea>
+                        <div class="result-area">
+                            <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
                         </div>
                     </div>
                 </div>
@@ -315,6 +329,7 @@
         }
     }
 
+    // 변경될때마다 url 저장
     function saveStateToUrl() {
         const sectors = [];
         document.querySelectorAll('.content-sector').forEach((sectorDiv, index) => {
@@ -359,6 +374,7 @@
         }
     }
 
+    // url 로드
     function loadStateFromUrl() {
         const hash = window.location.hash.substring(1);
         if (!hash) {
@@ -404,14 +420,14 @@
                                 <textarea class="memo-input" placeholder="코드를 입력하세요...">${sector.memo || ''}</textarea>
                             </div>
                             <div class="splitter splitter-horizontal"></div>
-                            <div class="result-area">
-                                <pre class="result-output">${sector.result || ''}</pre>
+                            <div class="description-area">
+                                <textarea class="description-input" placeholder="전체적인 설명을 입력하세요...">${sector.description || ''}</textarea>
                             </div>
                         </div>
                         <div class="splitter splitter-vertical"></div>
                         <div class="right-container">
-                            <div class="description-area">
-                                <textarea class="description-input" placeholder="전체적인 설명을 입력하세요...">${sector.description || ''}</textarea>
+                            <div class="result-area">
+                                <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
                             </div>
                         </div>
                     </div>
@@ -436,6 +452,40 @@
             console.error("상태 복원 실패:", e);
         }
     }
+
+    // --- 추가: 코드 렌더링 함수 ---
+    function renderCode(sectorElement) {
+        // 1. 해당 섹터에서 입력 영역과 iframe을 찾습니다.
+        const memoInput = sectorElement.querySelector('.memo-input');
+        const resultIframe = sectorElement.querySelector('.result-iframe');
+
+        if (!memoInput || !resultIframe) return;
+
+        const code = memoInput.value;
+
+        // 2. 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
+        // 사용자가 CSS를 입력했다고 가정하고 <style> 태그로 묶습니다.
+        // HTML 코드는 <body> 안에 삽입됩니다.
+        const content = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    /* 기본 margin 제거 및 iframe 크기 조정에 유연하도록 설정 */
+                    body { margin: 0; padding: 0; font-family: sans-serif; }
+                </style>
+            </head>
+            <body>
+                ${code}
+            </body>
+            </html>
+        `;
+
+        // 3. iframe에 콘텐츠를 씁니다.// srcdoc 사용
+// srcdoc 사용: 가장 간결하고 효율적인 방식
+        resultIframe.srcdoc = content;
+    }
+    // -----------------------------
 </script>
 </body>
 </html>
