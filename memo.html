@@ -102,6 +102,10 @@
         let startLeftRatio = 1;
         let startRightRatio = 1;
 
+        // rAF용 latest mouse point
+        let latestMouseX = null;
+        let latestMouseY = null;
+
         // 초기 비율 설정
         memoArea.style.flex = '1 0 0';
         resultArea.style.flex = '1 0 0';
@@ -140,51 +144,61 @@
             e.preventDefault();
         });
 
-        const handleMouseMove = (e) => {
+        document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
+            latestMouseX = e.clientX;
+            latestMouseY = e.clientY;
+        });
 
-            if (currentSplitter === 'horizontal') {
-                const containerHeight = leftContainer.getBoundingClientRect().height - 4;
-                const deltaY = e.clientY - startY;
-
-                const currentMemoHeight = containerHeight * startMemoRatio;
-                const newMemoHeight = currentMemoHeight + deltaY;
-
-                const newMemoRatio = newMemoHeight / containerHeight;
-                const newResultRatio = 1 - newMemoRatio;
-
-                if (newMemoRatio > 0.1 && newMemoRatio < 0.9) {
-                    memoArea.style.flex = `${newMemoRatio} 0 0`;
-                    resultArea.style.flex = `${newResultRatio} 0 0`;
-                }
-            } else if (currentSplitter === 'vertical') {
-                const containerWidth = sectorElement.querySelector('.sector-grid-container').getBoundingClientRect().width - 4;
-                const deltaX = e.clientX - startX;
-
-                const currentLeftWidth = containerWidth * startLeftRatio;
-                const newLeftWidth = currentLeftWidth + deltaX;
-
-                const newLeftRatio = newLeftWidth / containerWidth;
-                const newRightRatio = 1 - newLeftRatio;
-
-                if (newLeftRatio > 0.2 && newLeftRatio < 0.8) {
-                    leftContainer.style.flex = `${newLeftRatio} 0 0`;
-                    rightContainer.style.flex = `${newRightRatio} 0 0`;
-                }
-            }
-        };
-
-        const handleMouseUp = () => {
+        document.addEventListener('mouseup', () => {
             if (isResizing) {
                 isResizing = false;
                 horizontalSplitter.classList.remove('active');
                 verticalSplitter.classList.remove('active');
                 currentSplitter = null;
             }
-        };
+        });
 
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+        // rAF 루프: 계속 실행되며, 좌표 변화가 있을 때만 UI 업데이트
+        function update() {
+            if (isResizing && (latestMouseX !== null || latestMouseY !== null)) {
+                if (currentSplitter === 'horizontal') {
+                    const containerHeight = leftContainer.getBoundingClientRect().height - 4;
+                    const deltaY = latestMouseY - startY;
+
+                    const currentMemoHeight = containerHeight * startMemoRatio;
+                    const newMemoHeight = currentMemoHeight + deltaY;
+
+                    const newMemoRatio = newMemoHeight / containerHeight;
+                    const newResultRatio = 1 - newMemoRatio;
+
+                    if (newMemoRatio > 0.1 && newMemoRatio < 0.9) {
+                        memoArea.style.flex = `${newMemoRatio} 0 0`;
+                        resultArea.style.flex = `${newResultRatio} 0 0`;
+                    }
+                } else if (currentSplitter === 'vertical') {
+                    const containerWidth = sectorElement.querySelector('.sector-grid-container')
+                        .getBoundingClientRect().width - 4;
+
+                    const deltaX = latestMouseX - startX;
+
+                    const currentLeftWidth = containerWidth * startLeftRatio;
+                    const newLeftWidth = currentLeftWidth + deltaX;
+
+                    const newLeftRatio = newLeftWidth / containerWidth;
+                    const newRightRatio = 1 - newLeftRatio;
+
+                    if (newLeftRatio > 0.2 && newLeftRatio < 0.8) {
+                        leftContainer.style.flex = `${newLeftRatio} 0 0`;
+                        rightContainer.style.flex = `${newRightRatio} 0 0`;
+                    }
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        requestAnimationFrame(update);
     }
 
     function initSplitters() {
