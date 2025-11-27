@@ -581,6 +581,13 @@ body {
     font-size: 14px;
 }
 
+.memo-area .ace-editor-input { /* Ace Editor가 삽입될 Div */
+    width: 100%;
+    height: 100%; /* Ace가 작동하기 위해 필수 */
+    box-sizing: border-box;
+    /* 기존 textarea의 폰트 및 배경 스타일은 Ace 테마로 대체 */
+}
+
 /* 추가됨: 스플리터 스타일 */
 .splitter {
     background: #404040;
