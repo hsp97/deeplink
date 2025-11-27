@@ -1,0 +1,485 @@
+let itemCounter = 1;
+const listNameInput = document.getElementById('listName');
+const menuList = document.querySelector('.menu-sub');
+const mainContent = document.querySelector('.content');
+
+// 추가됨: 디바운싱을 위한 타이머 변수
+let saveTimer = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadStateFromUrl();
+
+    const existingSectors = document.querySelectorAll('.content-sector');
+    const initialCount = existingSectors.length;
+    itemCounter = initialCount + 1;
+
+    // 변경됨: 디바운싱 추가 (500ms)
+    // textarea 가 변경될때마다 renderCode 를 실행시킴
+    mainContent.addEventListener('input', (event) => {
+        if (event.target.tagName === 'TEXTAREA') {
+            const sectorElement = event.target.closest('.content-sector');
+
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+
+                // 디바운싱마다 url로 현재상태 저장
+                saveStateToUrl();
+                // --- 추가: 렌더링 호출 ---
+                renderCode(sectorElement);
+            }, 500);
+        }
+    });
+
+    // 추가됨: 스플리터 초기화
+    initSplitters();
+    // --- 추가: 초기 로드 시 모든 섹터 렌더링 ---
+    document.querySelectorAll('.content-sector').forEach(renderCode);
+});
+
+// 추가됨: 개별 섹터의 스플리터 초기화
+function initSectorSplitter(sectorElement) {
+    const horizontalSplitter = sectorElement.querySelector('.splitter-horizontal');
+    const verticalSplitter = sectorElement.querySelector('.splitter-vertical');
+    const leftContainer = sectorElement.querySelector('.left-container');
+    const memoArea = sectorElement.querySelector('.memo-area');
+    const descriptionArea = sectorElement.querySelector('.description-area');
+    const rightContainer = sectorElement.querySelector('.right-container');
+
+    const resultIframe = sectorElement.querySelector('.result-iframe'); // 추가
+
+    let isResizing = false;
+    let currentSplitter = null;
+    let startY = 0;
+    let startX = 0;
+    let startMemoRatio = 1;
+    let startResultRatio = 1;
+    let startLeftRatio = 1;
+    let startRightRatio = 1;
+
+    // rAF용 latest mouse point
+    let latestMouseX = null;
+    let latestMouseY = null;
+
+    // 초기 비율 설정
+    memoArea.style.flex = '1 0 0';
+    descriptionArea.style.flex = '1 0 0';
+    leftContainer.style.flex = '1 0 0';
+    rightContainer.style.flex = '1 0 0';
+
+    horizontalSplitter.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        currentSplitter = 'horizontal';
+        horizontalSplitter.classList.add('active');
+
+        resultIframe.classList.add('dragging'); // 추가
+
+        startY = e.clientY;
+        const memoHeight = memoArea.getBoundingClientRect().height;
+        const descriptionHeight = descriptionArea.getBoundingClientRect().height;
+        const totalHeight = memoHeight + descriptionHeight;
+
+        startMemoRatio = memoHeight / totalHeight;
+        startResultRatio = descriptionHeight / totalHeight;
+
+        e.preventDefault();
+    });
+
+    verticalSplitter.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        currentSplitter = 'vertical';
+        verticalSplitter.classList.add('active');
+
+        resultIframe.classList.add('dragging'); // 추가
+
+        startX = e.clientX;
+        const leftWidth = leftContainer.getBoundingClientRect().width;
+        const rightWidth = rightContainer.getBoundingClientRect().width;
+        const totalWidth = leftWidth + rightWidth;
+
+        startLeftRatio = leftWidth / totalWidth;
+        startRightRatio = rightWidth / totalWidth;
+
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        latestMouseX = e.clientX;
+        latestMouseY = e.clientY;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            horizontalSplitter.classList.remove('active');
+            verticalSplitter.classList.remove('active');
+            resultIframe.classList.remove('dragging'); // 추가
+            currentSplitter = null;
+        }
+    });
+
+    // rAF 루프: 계속 실행되며, 좌표 변화가 있을 때만 UI 업데이트
+    function update() {
+        if (isResizing && (latestMouseX !== null || latestMouseY !== null)) {
+            if (currentSplitter === 'horizontal') {
+                const containerHeight = leftContainer.getBoundingClientRect().height - 4;
+                const deltaY = latestMouseY - startY;
+
+                const currentMemoHeight = containerHeight * startMemoRatio;
+                const newMemoHeight = currentMemoHeight + deltaY;
+
+                const newMemoRatio = newMemoHeight / containerHeight;
+                const newResultRatio = 1 - newMemoRatio;
+
+                if (newMemoRatio > 0.1 && newMemoRatio < 0.9) {
+                    memoArea.style.flex = `${newMemoRatio} 0 0`;
+                    descriptionArea.style.flex = `${newResultRatio} 0 0`;
+                }
+            } else if (currentSplitter === 'vertical') {
+                const containerWidth = sectorElement.querySelector('.sector-grid-container')
+                    .getBoundingClientRect().width - 4;
+
+                const deltaX = latestMouseX - startX;
+
+                const currentLeftWidth = containerWidth * startLeftRatio;
+                const newLeftWidth = currentLeftWidth + deltaX;
+
+                const newLeftRatio = newLeftWidth / containerWidth;
+                const newRightRatio = 1 - newLeftRatio;
+
+                if (newLeftRatio > 0.2 && newLeftRatio < 0.8) {
+                    leftContainer.style.flex = `${newLeftRatio} 0 0`;
+                    rightContainer.style.flex = `${newRightRatio} 0 0`;
+                }
+            }
+        }
+
+        requestAnimationFrame(update);
+    }
+
+    requestAnimationFrame(update);
+}
+
+function initSplitters() {
+    // 모든 content-sector에 대해 스플리터 초기화
+    document.querySelectorAll('.content-sector').forEach(sector => {
+        initSectorSplitter(sector);
+    });
+}
+
+
+function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('collapsed');
+}
+
+// 리스트 추가 및 변경
+const btn = {
+    add: function () {
+        const itemName = listNameInput.value.trim();
+        const itemID = "sector-" + itemCounter;
+        const menuID = "menu-" + itemCounter;
+
+        if (itemName == '') {
+            alert("리스트 추가 필요");
+            return;
+        }
+
+        // 추가됨: 동일한 이름 체크
+        const existingNames = Array.from(document.querySelectorAll('.menu-sub .menu-item div'))
+            .map(div => div.textContent.trim());
+
+        if (existingNames.includes(itemName)) {
+            alert(`"${itemName}" 이름은 이미 존재합니다!`);
+            return;
+        }
+
+        const li = document.createElement('li');
+        li.className = 'menu-item';
+
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'menu-link';
+        a.setAttribute('data-tooltip', itemName)
+        a.id = menuID;
+
+        a.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.changeSector(itemID, a);
+        });
+
+        a.innerHTML = `
+                <span class="menu-icon">🎵</span>
+                <div>${itemName}</div>
+            `;
+
+        li.appendChild(a);
+        menuList.appendChild(li);
+
+        // 수정됨: 스플리터 구조로 content-sector 생성
+        const sectorDiv = document.createElement('div');
+        sectorDiv.className = 'content-sector';
+        sectorDiv.id = itemID;
+
+        const editorID = "editor-" + itemCounter;
+
+        sectorDiv.innerHTML = `
+                <div class="sector-grid-container">
+                    <div class="left-container">
+                        <div class="memo-area">
+                            <div id="${editorID}" class="ace-editor-input"></div>
+                        </div>
+                        <div class="splitter splitter-horizontal"></div>
+                        <div class="description-area">
+                            <textarea class="description-input" placeholder="전체적인 설명을 입력하세요..."></textarea>
+                        </div>
+                    </div>
+                    <div class="splitter splitter-vertical"></div>
+                    <div class="right-container">
+                        <div class="result-area">
+                            <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+        mainContent.appendChild(sectorDiv);
+
+        // 추가됨: 새로 생성된 섹터의 스플리터 초기화
+        initSectorSplitter(sectorDiv);
+
+        // 추가됨: 새로 생성된 섹터에 Ace Editor 초기화
+        initAceEditor(sectorDiv, '');
+
+        this.changeSector(itemID, a);
+
+        listNameInput.value = '';
+
+        itemCounter++;
+
+        saveStateToUrl();
+    },
+    changeSector: function (sectorIdToShow, clickedLink) {
+        document.querySelectorAll('.menu-link').forEach(link => {
+            link.classList.remove('active');
+        });
+
+        document.querySelectorAll('.content-sector').forEach(sector => {
+            sector.classList.remove('active');
+        });
+
+        if (clickedLink) {
+            clickedLink.classList.add('active');
+        }
+
+        const sectorToShow = document.getElementById(sectorIdToShow);
+        if (sectorToShow) {
+            sectorToShow.classList.add('active');
+        }
+
+        saveStateToUrl();
+    }
+}
+
+// 변경될때마다 url 저장
+function saveStateToUrl() {
+    const sectors = [];
+    document.querySelectorAll('.content-sector').forEach((sectorDiv, index) => {
+        const menuItem = document.querySelectorAll('.menu-sub .menu-item')[index];
+        const menuName = menuItem.querySelector('div').textContent;
+
+        // 수정됨: 스플리터 구조에서 textarea 찾기
+        // const memoContent = sectorDiv.querySelector('.memo-input')?.value || '';
+        // 🌟 변경: textarea 대신 Ace 인스턴스에서 코드 가져오기 🌟
+        const aceEditor = sectorDiv.aceEditorInstance;
+        const memoContent = aceEditor ? aceEditor.getValue() : sectorDiv.querySelector('.ace-editor-input')?.textContent || '';
+
+        const descContent = sectorDiv.querySelector('.description-input')?.value || '';
+        //const resultContent = sectorDiv.querySelector('.result-output')?.textContent || '';   //어차피 렌더링 새로함 -> 결과는 따로저장x
+
+        sectors.push({
+            id: sectorDiv.id,
+            name: menuName,
+            memo: memoContent,
+            description: descContent,
+            //result: resultContent
+        });
+    });
+
+    const activeMenu = document.querySelector('.menu-link.active');
+    const finalActiveMenuId = activeMenu ? activeMenu.id : null;
+
+    const activeSector = document.querySelector('.content-sector.active');
+    const finalSectorActiveId = activeSector ? activeSector.id : null;
+
+    const state = {
+        sectors: sectors,
+        activeMenuId: finalActiveMenuId,
+        activeSectorId: finalSectorActiveId
+    };
+
+    try {
+        const jsonString = JSON.stringify(state);
+        const utf8EncodedString = encodeURIComponent(jsonString);
+        const base64String = btoa(utf8EncodedString);
+
+        window.location.hash = base64String;
+
+    } catch (e) {
+        console.error("상태 저장 실패:", e);
+    }
+}
+
+// url 로드
+function loadStateFromUrl() {
+    const hash = window.location.hash.substring(1);
+    if (!hash) {
+        return;
+    }
+
+    try {
+        const jsonString = atob(hash);
+        const state = JSON.parse(decodeURIComponent(jsonString));
+
+        if (!state.sectors) return;
+
+        const menuList = document.querySelector('.menu-sub');
+        const mainContent = document.querySelector('.content');
+
+        menuList.innerHTML = '';
+        mainContent.innerHTML = '';
+
+        state.sectors.forEach(sector => {
+            const li = document.createElement('li');
+            li.className = 'menu-item';
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'menu-link';
+            a.setAttribute('data-tooltip', sector.name);
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                btn.changeSector(sector.id, a);
+            });
+            a.innerHTML = `<span class="menu-icon">🎵</span><div>${sector.name}</div>`;
+            li.appendChild(a);
+            menuList.appendChild(li);
+
+            // 수정됨: 스플리터 구조로 복원
+            const sectorDiv = document.createElement('div');
+            sectorDiv.className = 'content-sector';
+            sectorDiv.id = sector.id;
+
+            const editorID = sector.id.replace('sector-', 'editor-');
+            sectorDiv.innerHTML = `
+                    <div class="sector-grid-container">
+                        <div class="left-container">
+                            <div class="memo-area">
+                                <div id="${editorID}" class="ace-editor-input">${sector.memo || ''}</div>
+                            </div>
+                            <div class="splitter splitter-horizontal"></div>
+                            <div class="description-area">
+                                <textarea class="description-input" placeholder="전체적인 설명을 입력하세요...">${sector.description || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="splitter splitter-vertical"></div>
+                        <div class="right-container">
+                            <div class="result-area">
+                                <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            mainContent.appendChild(sectorDiv);
+
+            // 추가됨: 복원된 섹터의 스플리터 초기화
+            initSectorSplitter(sectorDiv);
+
+            // 추가됨: 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
+            initAceEditor(sectorDiv, sector.memo || '');
+        });
+
+        if (state.activeSectorId) {
+            const sectorToActivate = document.getElementById(state.activeSectorId);
+            if (sectorToActivate) {
+                btn.changeSector(state.activeSectorId, state.activeMenuId);
+            }
+        }
+
+        itemCounter = state.sectors.length + 1;
+
+    } catch (e) {
+        console.error("상태 복원 실패:", e);
+    }
+}
+
+// --- 추가: 코드 렌더링 함수 ---
+function renderCode(sectorElement) {
+    // 1. 해당 섹터에서 입력 영역과 iframe을 찾습니다.
+    // const memoInput = sectorElement.querySelector('.memo-input');
+    // const resultIframe = sectorElement.querySelector('.result-iframe');
+    // if (!memoInput || !resultIframe) return;
+    // const code = memoInput.value;
+
+    // 🌟 변경: memoInput 대신 Ace 인스턴스 참조 🌟
+    const aceEditor = sectorElement.aceEditorInstance;
+    const resultIframe = sectorElement.querySelector('.result-iframe');
+    if (!aceEditor || !resultIframe) return;
+
+    // Ace 인스턴스에서 현재 코드 가져오기
+    const code = aceEditor.getValue();
+
+    // 2. 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
+    // 사용자가 CSS를 입력했다고 가정하고 <style> 태그로 묶습니다.
+    // HTML 코드는 <body> 안에 삽입됩니다.
+    const content = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    /* 기본 margin 제거 및 iframe 크기 조정에 유연하도록 설정 */
+                    body { margin: 0; padding: 0; font-family: sans-serif; }
+                </style>
+            </head>
+            <body>
+                ${code}
+            </body>
+            </html>
+        `;
+
+    // 3. iframe에 콘텐츠를 씁니다.// srcdoc 사용
+    resultIframe.srcdoc = content;
+}
+
+// --- 추가: Ace Editor 초기화 및 이벤트 연결 함수 ---
+function initAceEditor(sectorElement, initialCode) {
+    const editorID = sectorElement.querySelector('.ace-editor-input').id;
+
+    // Ace 인스턴스 생성
+    const editor = ace.edit(editorID);
+
+    // 기본 설정
+    editor.setTheme("ace/theme/monokai"); // 다크 테마 설정
+    editor.session.setMode("ace/mode/html"); // 기본 모드는 HTML로 설정
+    editor.setValue(initialCode || "", -1); // 코드 설정 및 커서를 시작 위치로 이동
+
+    // 에디터의 변경 이벤트 리스너
+    editor.session.on('change', () => {
+        // Ace 에디터 변경 시에도 기존 디바운싱 로직을 따르도록 구현
+
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            // Ace에서 변경된 코드 가져오기
+            // const currentCode = editor.getValue();
+
+            // Ace 인스턴스에 임시로 값 저장 (상태 저장 시 사용하기 위함)
+            sectorElement.aceEditorInstance = editor;
+
+            saveStateToUrl();
+            renderCode(sectorElement);
+        }, 500);
+    });
+
+    // Ace 인스턴스를 섹터 요소에 저장하여 나중에 접근할 수 있게 함
+    sectorElement.aceEditorInstance = editor;
+}
+

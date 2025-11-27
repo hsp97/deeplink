@@ -1,0 +1,25 @@
+{
+  "name": "deeplink",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:js": "terser js/main.js -o js/main.min.js -c -m",
+    "build:css": "cleancss -o css/style.min.css css/style.css",
+    "build": "npm run build:js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hsp97/deeplink.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hsp97/deeplink/issues"
+  },
+  "homepage": "https://github.com/hsp97/deeplink#readme",
+  "devDependencies": {
+    "terser": "^5.44.1"
+  }
+}
