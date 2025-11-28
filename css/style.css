@@ -13,7 +13,7 @@ body {
     display: flex;
     width: 100%;
     align-items: center;
-    padding: 30px 30px;
+    padding: 20px 0px 0px 20px;
 }
 
 .topbar_menu {
@@ -80,7 +80,7 @@ body {
 
 .content {
     flex: 1;
-    padding: 20px;
+    padding: 10px;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
@@ -326,7 +326,7 @@ body {
     display: flex;
     align-items: center;
     text-decoration: none;
-    padding: 10px 15px 10px 5px;
+    padding: 10px 10px 10px 5px;
     color: white;
     transition: background 0.2s;
     border-radius: 6px;
@@ -351,13 +351,11 @@ body {
 /* 추가됨: collapsed 상태에서 아이콘 중앙 정렬 및 크기 증가 */
 .sidebar.collapsed .menu-icon {
     margin: 0;
-    font-size: 24px;
+    font-size: 14px;
 }
 
-/* 추가됨: collapsed 상태에서 메뉴 링크 중앙 정렬 */
-.sidebar.collapsed .menu-link {
-    justify-content: center;
-    padding: 10px;
+.sidebar.collapsed .menu-sub {
+    padding-left: 0;
 }
 
 /* 추가됨: 툴팁 스타일 */
