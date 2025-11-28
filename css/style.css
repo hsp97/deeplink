@@ -293,6 +293,11 @@ body {
     padding:0;
 }
 
+.btn-delete:hover {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
 .footer {
     height: 80px;
     background: #202020;
@@ -321,7 +326,7 @@ body {
     display: flex;
     align-items: center;
     text-decoration: none;
-    padding: 10px 15px;
+    padding: 10px 15px 10px 5px;
     color: white;
     transition: background 0.2s;
     border-radius: 6px;
@@ -333,9 +338,9 @@ body {
 }
 
 .menu-icon {
-    margin-right: 10px;
-    font-size: 18px; /* 추가됨: 기본 아이콘 크기 */
-    transition: all 0.3s; /* 추가됨: 부드러운 전환 */
+    margin-right: 5px;
+    font-size: 14px;
+    transition: all 0.3s;
 }
 
 /* 추가됨: collapsed 상태에서 텍스트 숨김 */
@@ -451,6 +456,11 @@ body {
     padding-left: 20px;
 }
 
+.menu-sub li{
+    display: flex;
+    align-items: center;
+}
+
 .menu-item.open .menu-sub {
     display: block;
 }
@@ -479,7 +489,12 @@ body {
     margin-bottom: 10px;
 }
 
-.input-group .btn-add { /* 추가된 클래스 */
+.input-group .btn-add {
+    padding: 5px 10px;
+    font-size: 16px;
+}
+
+.btn-delete {
     padding: 5px 10px;
     font-size: 16px;
 }

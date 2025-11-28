@@ -9,10 +9,6 @@ let saveTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadStateFromUrl();
 
-    const existingSectors = document.querySelectorAll('.content-sector');
-    const initialCount = existingSectors.length;
-    itemCounter = initialCount + 1;
-
     // 변경됨: 디바운싱 추가 (500ms)
     // textarea 가 변경될때마다 renderCode 를 실행시킴
     mainContent.addEventListener('input', (event) => {
@@ -196,6 +192,14 @@ const btn = {
         const li = document.createElement('li');
         li.className = 'menu-item';
 
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-primary btn-delete';
+        deleteBtn.textContent = '-';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            btn.delete(itemID);
+        });
+
         const a = document.createElement('a');
         a.href = '#';
         a.className = 'menu-link';
@@ -208,10 +212,11 @@ const btn = {
         });
 
         a.innerHTML = `
-                <span class="menu-icon">🎵</span>
+                <span class="menu-icon">📝</span>
                 <div>${itemName}</div>
             `;
 
+        li.appendChild(deleteBtn);
         li.appendChild(a);
         menuList.appendChild(li);
 
@@ -230,7 +235,7 @@ const btn = {
                         </div>
                         <div class="splitter splitter-horizontal"></div>
                         <div class="description-area">
-                            <textarea class="description-input" placeholder="전체적인 설명을 입력하세요..."></textarea>
+                            <textarea class="description-input" placeholder="설명 입력 구역"></textarea>
                         </div>
                     </div>
                     <div class="splitter splitter-vertical"></div>
@@ -255,6 +260,41 @@ const btn = {
         listNameInput.value = '';
 
         itemCounter++;
+
+        saveStateToUrl();
+    },
+    /**
+     * 특정 섹터 삭제
+     * @param {string} sectorId - 삭제할 섹터 ID
+     */
+    delete: function(sectorId) {
+        const sector = document.getElementById(sectorId);
+        const menuId = sectorId.replace('sector-', 'menu-');
+        const menu = document.getElementById(menuId);
+
+        if (!sector || !menu) return;
+
+        const menuName = menu.querySelector('div').textContent;
+        if (!confirm(`"${menuName}" 리스트를 삭제하시겠습니까?`)) {
+            return;
+        }
+
+        const isActive = sector.classList.contains('active');
+
+        // DOM에서 삭제
+        sector.remove();
+        menu.closest('.menu-item').remove();
+
+        // 삭제한 게 활성 상태였으면 다른 섹터 활성화
+        if (isActive) {
+            const remainingSectors = document.querySelectorAll('.content-sector');
+            if (remainingSectors.length > 0) {
+                const nextSector = remainingSectors[0];
+                const nextMenuId = nextSector.id.replace('sector-', 'menu-');
+                const nextMenu = document.getElementById(nextMenuId);
+                this.changeSector(nextSector.id, nextMenu);
+            }
+        }
 
         saveStateToUrl();
     },
@@ -333,6 +373,7 @@ function saveStateToUrl() {
 function loadStateFromUrl() {
     const hash = window.location.hash.substring(1);
     if (!hash) {
+        itemCounter = 1;  // 초기 상태
         return;
     }
 
@@ -351,15 +392,28 @@ function loadStateFromUrl() {
         state.sectors.forEach(sector => {
             const li = document.createElement('li');
             li.className = 'menu-item';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-primary btn-delete';
+            deleteBtn.textContent = '-';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                btn.delete(sector.id);
+            });
+
             const a = document.createElement('a');
             a.href = '#';
             a.className = 'menu-link';
             a.setAttribute('data-tooltip', sector.name);
+
+            a.id = sector.id.replace('sector-', 'menu-');
+
             a.addEventListener('click', (e) => {
                 e.preventDefault();
                 btn.changeSector(sector.id, a);
             });
-            a.innerHTML = `<span class="menu-icon">🎵</span><div>${sector.name}</div>`;
+            a.innerHTML = `<span class="menu-icon">📝</span><div>${sector.name}</div>`;
+            li.appendChild(deleteBtn);
             li.appendChild(a);
             menuList.appendChild(li);
 
@@ -377,7 +431,7 @@ function loadStateFromUrl() {
                             </div>
                             <div class="splitter splitter-horizontal"></div>
                             <div class="description-area">
-                                <textarea class="description-input" placeholder="전체적인 설명을 입력하세요...">${sector.description || ''}</textarea>
+                                <textarea class="description-input" placeholder="설명 입력 구역">${sector.description || ''}</textarea>
                             </div>
                         </div>
                         <div class="splitter splitter-vertical"></div>
@@ -399,13 +453,24 @@ function loadStateFromUrl() {
         });
 
         if (state.activeSectorId) {
-            const sectorToActivate = document.getElementById(state.activeSectorId);
-            if (sectorToActivate) {
-                btn.changeSector(state.activeSectorId, state.activeMenuId);
-            }
+            // ID로 실제 element 찾기
+            const activeLink = state.activeMenuId
+                ? document.getElementById(state.activeMenuId)
+                : null;
+            btn.changeSector(state.activeSectorId, activeLink);
         }
 
-        itemCounter = state.sectors.length + 1;
+        // itemCounter = state.sectors.length + 1;
+        // 변경: 최대 ID + 1로 설정 (중복 방지)
+        if (state.sectors.length > 0) {
+            const maxId = Math.max(...state.sectors.map(s => {
+                const num = parseInt(s.id.replace('sector-', ''));
+                return isNaN(num) ? 0 : num;
+            }));
+            itemCounter = maxId + 1;
+        } else {
+            itemCounter = 1;
+        }
 
     } catch (e) {
         console.error("상태 복원 실패:", e);
