@@ -522,6 +522,12 @@ function initAceEditor(sectorElement, initialCode) {
     // Ace 인스턴스 생성
     const editor = ace.edit(editorID);
 
+    editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true,
+        enableLiveAutocompletion: true
+    });
+
     // 기본 설정
     editor.setTheme("ace/theme/monokai"); // 다크 테마 설정
     editor.session.setMode("ace/mode/html"); // 기본 모드는 HTML로 설정
