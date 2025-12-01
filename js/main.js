@@ -5,6 +5,158 @@ const mainContent = document.querySelector('.content');
 
 // 추가됨: 디바운싱을 위한 타이머 변수
 let saveTimer = null;
+/**
+ * 코드 템플릿 모음
+ */
+const codeTemplates = {
+    button: `<button class="btn">클릭하세요</button>
+
+<style>
+.btn {
+    background: #1db954;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+.btn:hover {
+    background: #1ed760;
+}
+</style>`,
+
+    card: `<div class="card">
+    <div class="card-header">제목</div>
+    <div class="card-body">
+        <p>카드 내용을 입력하세요.</p>
+    </div>
+</div>
+
+<style>
+.card {
+    width: 300px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.card-header {
+    background: #f5f5f5;
+    padding: 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+.card-body {
+    padding: 15px;
+}
+</style>`,
+
+    form: `<form class="form">
+    <div class="form-group">
+        <label>이름</label>
+        <input type="text" placeholder="이름을 입력하세요">
+    </div>
+    <div class="form-group">
+        <label>이메일</label>
+        <input type="email" placeholder="이메일을 입력하세요">
+    </div>
+    <button type="submit">제출</button>
+</form>
+
+<style>
+.form {
+    max-width: 300px;
+    padding: 20px;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.form button {
+    background: #1db954;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+</style>`,
+
+    table: `<table class="table">
+    <thead>
+        <tr>
+            <th>이름</th>
+            <th>나이</th>
+            <th>직업</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>홍길동</td>
+            <td>25</td>
+            <td>개발자</td>
+        </tr>
+        <tr>
+            <td>김철수</td>
+            <td>30</td>
+            <td>디자이너</td>
+        </tr>
+    </tbody>
+</table>
+
+<style>
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th, .table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+.table th {
+    background: #f5f5f5;
+}
+.table tr:hover {
+    background: #f9f9f9;
+}
+</style>`,
+
+    flexbox: `<div class="flex-container">
+    <div class="flex-item">1</div>
+    <div class="flex-item">2</div>
+    <div class="flex-item">3</div>
+</div>
+
+<style>
+.flex-container {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: #f0f0f0;
+}
+.flex-item {
+    flex: 1;
+    padding: 20px;
+    background: #1db954;
+    color: white;
+    text-align: center;
+    border-radius: 4px;
+}
+</style>`
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     loadStateFromUrl();
@@ -23,6 +175,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // 자동 스크롤
                     consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                }
+            }
+        }
+    });
+
+    // 템플릿 버튼 클릭 이벤트 (이벤트 위임)
+    mainContent.addEventListener('click', (event) => {
+        if (event.target.classList.contains('template-btn')) {
+            const templateName = event.target.dataset.template;
+            const template = codeTemplates[templateName];
+
+            if (template) {
+                const sectorElement = event.target.closest('.content-sector');
+                if (sectorElement && sectorElement.aceEditorInstance) {
+                    const editor = sectorElement.aceEditorInstance;
+
+                    // 현재 커서 위치에 삽입
+                    editor.insert(template);
+                    editor.focus()
+
+                    // 저장 및 렌더링
+                    saveStateToUrl();
+                    renderCode(sectorElement);
                 }
             }
         }
@@ -98,6 +273,9 @@ function initSectorSplitter(sectorElement) {
 
         resultIframe.classList.add('dragging'); // 추가
 
+        latestMouseX = e.clientX;
+        latestMouseY = e.clientY;
+
         startY = e.clientY;
         const memoHeight = memoArea.getBoundingClientRect().height;
         const descriptionHeight = descriptionArea.getBoundingClientRect().height;
@@ -116,6 +294,9 @@ function initSectorSplitter(sectorElement) {
 
         resultIframe.classList.add('dragging'); // 추가
 
+        latestMouseX = e.clientX;
+        latestMouseY = e.clientY;
+
         startX = e.clientX;
         const leftWidth = leftContainer.getBoundingClientRect().width;
         const rightWidth = rightContainer.getBoundingClientRect().width;
@@ -133,6 +314,9 @@ function initSectorSplitter(sectorElement) {
         horizontalConsoleSplitter.classList.add('active');
 
         resultIframe.classList.add('dragging'); // 추가
+
+        latestMouseX = e.clientX;
+        latestMouseY = e.clientY;
 
         startY = e.clientY;
         const resultHeight = resultArea.getBoundingClientRect().height;
@@ -292,6 +476,13 @@ const btn = {
         sectorDiv.innerHTML = `
                 <div class="sector-grid-container">
                     <div class="left-container">
+                        <div class="template-bar">
+                            <button class="template-btn" data-template="button">버튼</button>
+                            <button class="template-btn" data-template="card">카드</button>
+                            <button class="template-btn" data-template="form">폼</button>
+                            <button class="template-btn" data-template="table">테이블</button>
+                            <button class="template-btn" data-template="flexbox">Flexbox</button>
+                        </div>
                         <div class="memo-area">
                             <div id="${editorID}" class="ace-editor-input"></div>
                         </div>
@@ -496,6 +687,13 @@ function loadStateFromUrl() {
             sectorDiv.innerHTML = `
                     <div class="sector-grid-container">
                         <div class="left-container">
+                            <div class="template-bar">
+                                <button class="template-btn" data-template="button">버튼</button>
+                                <button class="template-btn" data-template="card">카드</button>
+                                <button class="template-btn" data-template="form">폼</button>
+                                <button class="template-btn" data-template="table">테이블</button>
+                                <button class="template-btn" data-template="flexbox">Flexbox</button>
+                            </div>
                             <div class="memo-area">
                                 <div id="${editorID}" class="ace-editor-input">${sector.memo || ''}</div>
                             </div>
@@ -555,13 +753,8 @@ function loadStateFromUrl() {
     }
 }
 
-// --- 추가: 코드 렌더링 함수 ---
+// --- 코드 렌더링 함수 ---
 function renderCode(sectorElement) {
-    // 1. 해당 섹터에서 입력 영역과 iframe을 찾습니다.
-    // const memoInput = sectorElement.querySelector('.memo-input');
-    // const resultIframe = sectorElement.querySelector('.result-iframe');
-    // if (!memoInput || !resultIframe) return;
-    // const code = memoInput.value;
 
     // 🌟 변경: memoInput 대신 Ace 인스턴스 참조 🌟
     const aceEditor = sectorElement.aceEditorInstance;

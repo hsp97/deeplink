@@ -615,24 +615,17 @@ body {
 .splitter.active {
     background: #1ed760;
 }
-/* 추가됨: 가로 스플리터 (Memo와 description 사이) */
-.splitter-horizontal {
+/* 가로 스플리터 */
+.splitter-horizontal, .splitter-console {
     height: 4px;
     cursor: row-resize;
     width: 100%;
 }
-/* 추가됨: 세로 스플리터 (왼쪽과 오른쪽 사이) */
+/* 세로 스플리터 (왼쪽과 오른쪽 사이) */
 .splitter-vertical {
     width: 4px;
     cursor: col-resize;
     height: 100%;
-}
-
-/* 콘솔 스플리터 (result와 console) */
-.splitter-console {
-    height: 4px;
-    cursor: row-resize;
-    width: 100%;
 }
 
 /* 스플리터 때문에 result 영역에서 커서 비활성화*/
@@ -702,3 +695,29 @@ body {
     color: #6bcfff;
 }
 
+
+/* 템플릿 바 */
+.template-bar {
+    display: flex;
+    gap: 5px;
+    padding: 5px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #404040;
+    flex-wrap: wrap;
+}
+
+.template-btn {
+    background: #404040;
+    border: none;
+    color: #ddd;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.template-btn:hover {
+    background: #1db954;
+    color: white;
+}
