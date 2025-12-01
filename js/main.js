@@ -904,3 +904,48 @@ function clearConsole(btn) {
     }
 }
 
+function downloadHTML() {
+    const activeSector = document.querySelector('.content-sector.active');
+
+    if (!activeSector) {
+        alert('다운로드할 리스트를 선택해주세요.');
+        return;
+    }
+
+    const aceEditor = activeSector.aceEditorInstance;
+    if (!aceEditor) return;
+
+    const code = aceEditor.getValue();
+
+    // 완전한 HTML 문서 생성
+    const content = `<!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Document</title>
+            <style>
+                body { margin: 0; padding: 0; font-family: sans-serif; }
+            </style>
+        </head>
+        <body>
+        ${code}
+        </body>
+        </html>`;
+
+    // 파일명 가져오기 (메뉴 이름 사용)
+    const menuId = activeSector.id.replace('sector-', 'menu-');
+    const menu = document.getElementById(menuId);
+    const fileName = menu ? menu.querySelector('div').textContent.trim() : 'download';
+
+    // Blob 생성 및 다운로드
+    const blob = new Blob([content], { type: 'text/html; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.html`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
