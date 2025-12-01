@@ -9,6 +9,25 @@ let saveTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadStateFromUrl();
 
+    // 콘솔 메시지 리스너
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'console') {
+            const activeSector = document.querySelector('.content-sector.active');
+            if (activeSector) {
+                const consoleOutput = activeSector.querySelector('.console-output');
+                if (consoleOutput) {
+                    const logDiv = document.createElement('div');
+                    logDiv.className = `console-log ${event.data.logType}`;
+                    logDiv.textContent = event.data.message;
+                    consoleOutput.appendChild(logDiv);
+
+                    // 자동 스크롤
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                }
+            }
+        }
+    });
+
     // 변경됨: 디바운싱 추가 (500ms)
     // textarea 가 변경될때마다 renderCode 를 실행시킴
     mainContent.addEventListener('input', (event) => {
@@ -43,24 +62,34 @@ function initSectorSplitter(sectorElement) {
 
     const resultIframe = sectorElement.querySelector('.result-iframe'); // 추가
 
+    const horizontalConsoleSplitter = sectorElement.querySelector('.splitter-console'); // 추가 콘솔 splitter
+    const resultArea = sectorElement.querySelector('.result-area'); // result 영역
+    const consoleArea = sectorElement.querySelector('.console-area'); // console 영역
+
     let isResizing = false;
     let currentSplitter = null;
     let startY = 0;
     let startX = 0;
     let startMemoRatio = 1;
+    let startDescriptionRatio = 1;
     let startResultRatio = 1;
     let startLeftRatio = 1;
     let startRightRatio = 1;
+
+    let startConsoleRatio = 1;
 
     // rAF용 latest mouse point
     let latestMouseX = null;
     let latestMouseY = null;
 
     // 초기 비율 설정
-    memoArea.style.flex = '1 0 0';
+    memoArea.style.flex = '2 0 0';
     descriptionArea.style.flex = '1 0 0';
     leftContainer.style.flex = '1 0 0';
     rightContainer.style.flex = '1 0 0';
+
+    resultArea.style.flex = '4 0 0';
+    consoleArea.style.flex = '1 0 0';
 
     horizontalSplitter.addEventListener('mousedown', (e) => {
         isResizing = true;
@@ -75,7 +104,7 @@ function initSectorSplitter(sectorElement) {
         const totalHeight = memoHeight + descriptionHeight;
 
         startMemoRatio = memoHeight / totalHeight;
-        startResultRatio = descriptionHeight / totalHeight;
+        startDescriptionRatio = descriptionHeight / totalHeight;
 
         e.preventDefault();
     });
@@ -98,6 +127,24 @@ function initSectorSplitter(sectorElement) {
         e.preventDefault();
     });
 
+    horizontalConsoleSplitter.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        currentSplitter = 'horizontalConsole';
+        horizontalConsoleSplitter.classList.add('active');
+
+        resultIframe.classList.add('dragging'); // 추가
+
+        startY = e.clientY;
+        const resultHeight = resultArea.getBoundingClientRect().height;
+        const consoleHeight = consoleArea.getBoundingClientRect().height;
+        const totalHeight = resultHeight + consoleHeight;
+
+        startResultRatio = resultHeight / totalHeight;
+        startConsoleRatio = consoleHeight / totalHeight;
+
+        e.preventDefault();
+    });
+
     document.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
         latestMouseX = e.clientX;
@@ -109,6 +156,7 @@ function initSectorSplitter(sectorElement) {
             isResizing = false;
             horizontalSplitter.classList.remove('active');
             verticalSplitter.classList.remove('active');
+            horizontalConsoleSplitter.classList.remove('active');
             resultIframe.classList.remove('dragging'); // 추가
             currentSplitter = null;
         }
@@ -125,11 +173,11 @@ function initSectorSplitter(sectorElement) {
                 const newMemoHeight = currentMemoHeight + deltaY;
 
                 const newMemoRatio = newMemoHeight / containerHeight;
-                const newResultRatio = 1 - newMemoRatio;
+                const newDescriptionRatio = 1 - newMemoRatio;
 
                 if (newMemoRatio > 0.1 && newMemoRatio < 0.9) {
                     memoArea.style.flex = `${newMemoRatio} 0 0`;
-                    descriptionArea.style.flex = `${newResultRatio} 0 0`;
+                    descriptionArea.style.flex = `${newDescriptionRatio} 0 0`;
                 }
             } else if (currentSplitter === 'vertical') {
                 const containerWidth = sectorElement.querySelector('.sector-grid-container')
@@ -146,6 +194,20 @@ function initSectorSplitter(sectorElement) {
                 if (newLeftRatio > 0.2 && newLeftRatio < 0.8) {
                     leftContainer.style.flex = `${newLeftRatio} 0 0`;
                     rightContainer.style.flex = `${newRightRatio} 0 0`;
+                }
+            } else if (currentSplitter === 'horizontalConsole') {
+                const containerHeight = rightContainer.getBoundingClientRect().height - 4;
+                const deltaY = latestMouseY - startY;
+
+                const currentResultHeight = containerHeight * startResultRatio;
+                const newResultHeight = currentResultHeight + deltaY;
+
+                const newResultRatio = newResultHeight / containerHeight;
+                const newConsoleRatio = 1 - newResultRatio;
+
+                if (newResultRatio > 0.1 && newResultRatio < 0.9) {
+                    resultArea.style.flex = `${newResultRatio} 0 0`;
+                    consoleArea.style.flex = `${newConsoleRatio} 0 0`;
                 }
             }
         }
@@ -238,10 +300,18 @@ const btn = {
                             <textarea class="description-input" placeholder="설명 입력 구역"></textarea>
                         </div>
                     </div>
-                    <div class="splitter splitter-vertical"></div>
+                    <div class="splitter splitter-vertical"></div>                   
                     <div class="right-container">
                         <div class="result-area">
                             <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
+                        </div>
+                        <div class="splitter splitter-console"></div>
+                        <div class="console-area">
+                            <div class="console-header">
+                                <span>콘솔</span>
+                                <button class="console-clear-btn" onclick="clearConsole(this)">지우기</button>
+                            </div>
+                            <div class="console-output"></div>
                         </div>
                     </div>
                 </div>
@@ -439,6 +509,14 @@ function loadStateFromUrl() {
                             <div class="result-area">
                                 <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
                             </div>
+                            <div class="splitter splitter-console"></div>
+                            <div class="console-area">
+                                <div class="console-header">
+                                    <span>콘솔</span>
+                                    <button class="console-clear-btn" onclick="clearConsole(this)">지우기</button>
+                                </div>
+                                <div class="console-output"></div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -488,10 +566,76 @@ function renderCode(sectorElement) {
     // 🌟 변경: memoInput 대신 Ace 인스턴스 참조 🌟
     const aceEditor = sectorElement.aceEditorInstance;
     const resultIframe = sectorElement.querySelector('.result-iframe');
+    const consoleOutput = sectorElement.querySelector('.console-output');
+
     if (!aceEditor || !resultIframe) return;
+
+    // 콘솔 초기화
+    if (consoleOutput) {
+        consoleOutput.innerHTML = '';
+    }
 
     // Ace 인스턴스에서 현재 코드 가져오기
     const code = aceEditor.getValue();
+
+    // 콘솔 오버라이드 스크립트
+    const consoleOverride = `
+        <script>
+            (function() {
+                const originalConsole = {
+                    log: console.log,
+                    error: console.error,
+                    warn: console.warn,
+                    info: console.info
+                };
+                
+                function sendToParent(type, args) {
+                    const message = Array.from(args).map(arg => {
+                        if (typeof arg === 'object') {
+                            try {
+                                return JSON.stringify(arg, null, 2);
+                            } catch (e) {
+                                return String(arg);
+                            }
+                        }
+                        return String(arg);
+                    }).join(' ');
+                    
+                    parent.postMessage({
+                        type: 'console',
+                        logType: type,
+                        message: message
+                    }, '*');
+                }
+                
+                console.log = function() {
+                    sendToParent('log', arguments);
+                    originalConsole.log.apply(console, arguments);
+                };
+                
+                console.error = function() {
+                    sendToParent('error', arguments);
+                    originalConsole.error.apply(console, arguments);
+                };
+                
+                console.warn = function() {
+                    sendToParent('warn', arguments);
+                    originalConsole.warn.apply(console, arguments);
+                };
+                
+                console.info = function() {
+                    sendToParent('info', arguments);
+                    originalConsole.info.apply(console, arguments);
+                };
+                
+                // 에러 캐치
+                window.onerror = function(msg, url, line, col, error) {
+                    sendToParent('error', ['Error: ' + msg + ' (line ' + line + ')']);
+                    return false;
+                };
+            })();
+        <\/script>
+    `;
 
     // 2. 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
     // 사용자가 CSS를 입력했다고 가정하고 <style> 태그로 묶습니다.
@@ -500,6 +644,8 @@ function renderCode(sectorElement) {
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
+                ${consoleOverride}
                 <style>
                     /* 기본 margin 제거 및 iframe 크기 조정에 유연하도록 설정 */
                     body { margin: 0; padding: 0; font-family: sans-serif; }
@@ -552,5 +698,16 @@ function initAceEditor(sectorElement, initialCode) {
 
     // Ace 인스턴스를 섹터 요소에 저장하여 나중에 접근할 수 있게 함
     sectorElement.aceEditorInstance = editor;
+}
+
+/**
+ * 콘솔 출력 지우기
+ * @param {HTMLElement} btn - 클릭된 버튼
+ */
+function clearConsole(btn) {
+    const consoleOutput = btn.closest('.console-area').querySelector('.console-output');
+    if (consoleOutput) {
+        consoleOutput.innerHTML = '';
+    }
 }
 
