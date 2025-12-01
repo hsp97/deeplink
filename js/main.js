@@ -3,8 +3,9 @@ const listNameInput = document.getElementById('listName');
 const menuList = document.querySelector('.menu-sub');
 const mainContent = document.querySelector('.content');
 
-// 추가됨: 디바운싱을 위한 타이머 변수
+// 디바운싱을 위한 타이머 변수
 let saveTimer = null;
+
 /**
  * 코드 템플릿 모음
  */
@@ -158,6 +159,25 @@ const codeTemplates = {
 </style>`
 };
 
+/**
+ * 라이브러리 cdn 모음
+ */
+const libraryUrls = {
+    jquery: {
+        js: ['https://code.jquery.com/jquery-3.7.1.min.js']
+    },
+    bootstrap: {
+        css: ['https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'],
+        js: ['https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js']
+    },
+    tailwind: {
+        js: ['https://cdn.tailwindcss.com']
+    },
+    vue: {
+        js: ['https://unpkg.com/vue@3/dist/vue.global.js']
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     loadStateFromUrl();
 
@@ -199,6 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveStateToUrl();
                     renderCode(sectorElement);
                 }
+            }
+        }
+    });
+
+    // 라이브러리 체크박스 변경 이벤트
+    mainContent.addEventListener('change', (event) => {
+        if (event.target.matches('.library-checkbox input[type="checkbox"]')) {
+            const sectorElement = event.target.closest('.content-sector');
+            if (sectorElement) {
+                saveStateToUrl();
+                renderCode(sectorElement);
             }
         }
     });
@@ -483,6 +514,20 @@ const btn = {
                             <button class="template-btn" data-template="table">테이블</button>
                             <button class="template-btn" data-template="flexbox">Flexbox</button>
                         </div>
+                        <div class="library-bar">
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="jquery"> jQuery
+                            </label>
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="bootstrap"> Bootstrap
+                            </label>
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="tailwind"> Tailwind
+                            </label>
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="vue"> Vue.js
+                            </label>
+                        </div>
                         <div class="memo-area">
                             <div id="${editorID}" class="ace-editor-input"></div>
                         </div>
@@ -597,11 +642,17 @@ function saveStateToUrl() {
         const descContent = sectorDiv.querySelector('.description-input')?.value || '';
         //const resultContent = sectorDiv.querySelector('.result-output')?.textContent || '';   //어차피 렌더링 새로함 -> 결과는 따로저장x
 
+        const selectedLibraries = [];
+        sectorDiv.querySelectorAll('.library-checkbox input:checked').forEach(checkbox => {
+            selectedLibraries.push(checkbox.dataset.library);
+        });
+
         sectors.push({
             id: sectorDiv.id,
             name: menuName,
             memo: memoContent,
             description: descContent,
+            libraries: selectedLibraries  // 추가
             //result: resultContent
         });
     });
@@ -620,10 +671,14 @@ function saveStateToUrl() {
 
     try {
         const jsonString = JSON.stringify(state);
+        /*
         const utf8EncodedString = encodeURIComponent(jsonString);
         const base64String = btoa(utf8EncodedString);
+        */
 
-        window.location.hash = base64String;
+        // LZString.compressToEncodedURIComponent를 사용하여 URL에 안전하게 압축 (압축률 대략 70%)
+        const compressedData = LZString.compressToEncodedURIComponent(jsonString);
+        window.location.hash = compressedData;
 
     } catch (e) {
         console.error("상태 저장 실패:", e);
@@ -639,8 +694,10 @@ function loadStateFromUrl() {
     }
 
     try {
-        const jsonString = atob(hash);
-        const state = JSON.parse(decodeURIComponent(jsonString));
+        // const jsonString = atob(hash);
+        // const state = JSON.parse(decodeURIComponent(jsonString));
+        const jsonString = LZString.decompressFromEncodedURIComponent(hash);
+        const state = JSON.parse(jsonString);
 
         if (!state.sectors) return;
 
@@ -694,6 +751,20 @@ function loadStateFromUrl() {
                                 <button class="template-btn" data-template="table">테이블</button>
                                 <button class="template-btn" data-template="flexbox">Flexbox</button>
                             </div>
+                            <div class="library-bar">
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="jquery"> jQuery
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="bootstrap"> Bootstrap
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="tailwind"> Tailwind
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="vue"> Vue.js
+                                </label>
+                            </div>
                             <div class="memo-area">
                                 <div id="${editorID}" class="ace-editor-input">${sector.memo || ''}</div>
                             </div>
@@ -726,6 +797,17 @@ function loadStateFromUrl() {
 
             // 추가됨: 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
             initAceEditor(sectorDiv, sector.memo || '');
+
+            // 라이브러리 선택 상태 복원
+            if (sector.libraries && sector.libraries.length > 0) {
+                sector.libraries.forEach(lib => {
+                    const checkbox = sectorDiv.querySelector(`.library-checkbox input[data-library="${lib}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+
         });
 
         if (state.activeSectorId) {
@@ -770,6 +852,30 @@ function renderCode(sectorElement) {
 
     // Ace 인스턴스에서 현재 코드 가져오기
     const code = aceEditor.getValue();
+
+    // 선택된 라이브러리 가져오기
+    const selectedLibraries = [];
+    sectorElement.querySelectorAll('.library-checkbox input:checked').forEach(checkbox => {
+        selectedLibraries.push(checkbox.dataset.library);
+    });
+
+    // 라이브러리 태그 생성
+    let libraryTags = '';
+    selectedLibraries.forEach(lib => {
+        const urls = libraryUrls[lib];
+        if (urls) {
+            if (urls.css) {
+                urls.css.forEach(url => {
+                    libraryTags += `<link rel="stylesheet" href="${url}">\n`;
+                });
+            }
+            if (urls.js) {
+                urls.js.forEach(url => {
+                    libraryTags += `<script src="${url}"><\/script>\n`;
+                });
+            }
+        }
+    });
 
     // 콘솔 오버라이드 스크립트
     const consoleOverride = `
@@ -839,6 +945,7 @@ function renderCode(sectorElement) {
             <head>
                 <meta charset="UTF-8">
                 ${consoleOverride}
+                ${libraryTags}
                 <style>
                     /* 기본 margin 제거 및 iframe 크기 조정에 유연하도록 설정 */
                     body { margin: 0; padding: 0; font-family: sans-serif; }

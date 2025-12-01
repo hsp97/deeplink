@@ -721,3 +721,32 @@ body {
     background: #1db954;
     color: white;
 }
+
+/* 라이브러리 선택 바 */
+.library-bar {
+    display: flex;
+    gap: 10px;
+    padding: 5px 10px;
+    background: #252525;
+    border-bottom: 1px solid #404040;
+    flex-wrap: wrap;
+}
+
+.library-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #aaa;
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.library-checkbox:hover {
+    color: #ddd;
+}
+
+.library-checkbox input[type="checkbox"] {
+    accent-color: #1db954;
+    cursor: pointer;
+}
