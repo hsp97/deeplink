@@ -3,11 +3,236 @@ const listNameInput = document.getElementById('listName');
 const menuList = document.querySelector('.menu-sub');
 const mainContent = document.querySelector('.content');
 
-// 추가됨: 디바운싱을 위한 타이머 변수
+// 디바운싱을 위한 타이머 변수
 let saveTimer = null;
+
+/**
+ * 코드 템플릿 모음
+ */
+const codeTemplates = {
+    button: `<button class="btn">클릭하세요</button>
+
+<style>
+.btn {
+    background: #1db954;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+.btn:hover {
+    background: #1ed760;
+}
+</style>`,
+
+    card: `<div class="card">
+    <div class="card-header">제목</div>
+    <div class="card-body">
+        <p>카드 내용을 입력하세요.</p>
+    </div>
+</div>
+
+<style>
+.card {
+    width: 300px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.card-header {
+    background: #f5f5f5;
+    padding: 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+.card-body {
+    padding: 15px;
+}
+</style>`,
+
+    form: `<form class="form">
+    <div class="form-group">
+        <label>이름</label>
+        <input type="text" placeholder="이름을 입력하세요">
+    </div>
+    <div class="form-group">
+        <label>이메일</label>
+        <input type="email" placeholder="이메일을 입력하세요">
+    </div>
+    <button type="submit">제출</button>
+</form>
+
+<style>
+.form {
+    max-width: 300px;
+    padding: 20px;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.form button {
+    background: #1db954;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+</style>`,
+
+    table: `<table class="table">
+    <thead>
+        <tr>
+            <th>이름</th>
+            <th>나이</th>
+            <th>직업</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>홍길동</td>
+            <td>25</td>
+            <td>개발자</td>
+        </tr>
+        <tr>
+            <td>김철수</td>
+            <td>30</td>
+            <td>디자이너</td>
+        </tr>
+    </tbody>
+</table>
+
+<style>
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th, .table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+.table th {
+    background: #f5f5f5;
+}
+.table tr:hover {
+    background: #f9f9f9;
+}
+</style>`,
+
+    flexbox: `<div class="flex-container">
+    <div class="flex-item">1</div>
+    <div class="flex-item">2</div>
+    <div class="flex-item">3</div>
+</div>
+
+<style>
+.flex-container {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: #f0f0f0;
+}
+.flex-item {
+    flex: 1;
+    padding: 20px;
+    background: #1db954;
+    color: white;
+    text-align: center;
+    border-radius: 4px;
+}
+</style>`
+};
+
+/**
+ * 라이브러리 cdn 모음
+ */
+const libraryUrls = {
+    jquery: {
+        js: ['https://code.jquery.com/jquery-3.7.1.min.js']
+    },
+    bootstrap: {
+        css: ['https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'],
+        js: ['https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js']
+    },
+    tailwind: {
+        js: ['https://cdn.tailwindcss.com']
+    },
+    vue: {
+        js: ['https://unpkg.com/vue@3/dist/vue.global.js']
+    }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     loadStateFromUrl();
+
+    // 콘솔 메시지 리스너
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'console') {
+            const activeSector = document.querySelector('.content-sector.active');
+            if (activeSector) {
+                const consoleOutput = activeSector.querySelector('.console-output');
+                if (consoleOutput) {
+                    const logDiv = document.createElement('div');
+                    logDiv.className = `console-log ${event.data.logType}`;
+                    logDiv.textContent = event.data.message;
+                    consoleOutput.appendChild(logDiv);
+
+                    // 자동 스크롤
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                }
+            }
+        }
+    });
+
+    // 템플릿 버튼 클릭 이벤트 (이벤트 위임)
+    mainContent.addEventListener('click', (event) => {
+        if (event.target.classList.contains('template-btn')) {
+            const templateName = event.target.dataset.template;
+            const template = codeTemplates[templateName];
+
+            if (template) {
+                const sectorElement = event.target.closest('.content-sector');
+                if (sectorElement && sectorElement.aceEditorInstance) {
+                    const editor = sectorElement.aceEditorInstance;
+
+                    // 현재 커서 위치에 삽입
+                    editor.insert(template);
+                    editor.focus()
+
+                    // 저장 및 렌더링
+                    saveStateToUrl();
+                    renderCode(sectorElement);
+                }
+            }
+        }
+    });
+
+    // 라이브러리 체크박스 변경 이벤트
+    mainContent.addEventListener('change', (event) => {
+        if (event.target.matches('.library-checkbox input[type="checkbox"]')) {
+            const sectorElement = event.target.closest('.content-sector');
+            if (sectorElement) {
+                saveStateToUrl();
+                renderCode(sectorElement);
+            }
+        }
+    });
 
     // 변경됨: 디바운싱 추가 (500ms)
     // textarea 가 변경될때마다 renderCode 를 실행시킴
@@ -43,24 +268,34 @@ function initSectorSplitter(sectorElement) {
 
     const resultIframe = sectorElement.querySelector('.result-iframe'); // 추가
 
+    const horizontalConsoleSplitter = sectorElement.querySelector('.splitter-console'); // 추가 콘솔 splitter
+    const resultArea = sectorElement.querySelector('.result-area'); // result 영역
+    const consoleArea = sectorElement.querySelector('.console-area'); // console 영역
+
     let isResizing = false;
     let currentSplitter = null;
     let startY = 0;
     let startX = 0;
     let startMemoRatio = 1;
+    let startDescriptionRatio = 1;
     let startResultRatio = 1;
     let startLeftRatio = 1;
     let startRightRatio = 1;
+
+    let startConsoleRatio = 1;
 
     // rAF용 latest mouse point
     let latestMouseX = null;
     let latestMouseY = null;
 
     // 초기 비율 설정
-    memoArea.style.flex = '1 0 0';
+    memoArea.style.flex = '2 0 0';
     descriptionArea.style.flex = '1 0 0';
     leftContainer.style.flex = '1 0 0';
     rightContainer.style.flex = '1 0 0';
+
+    resultArea.style.flex = '4 0 0';
+    consoleArea.style.flex = '1 0 0';
 
     horizontalSplitter.addEventListener('mousedown', (e) => {
         isResizing = true;
@@ -69,13 +304,16 @@ function initSectorSplitter(sectorElement) {
 
         resultIframe.classList.add('dragging'); // 추가
 
+        latestMouseX = e.clientX;
+        latestMouseY = e.clientY;
+
         startY = e.clientY;
         const memoHeight = memoArea.getBoundingClientRect().height;
         const descriptionHeight = descriptionArea.getBoundingClientRect().height;
         const totalHeight = memoHeight + descriptionHeight;
 
         startMemoRatio = memoHeight / totalHeight;
-        startResultRatio = descriptionHeight / totalHeight;
+        startDescriptionRatio = descriptionHeight / totalHeight;
 
         e.preventDefault();
     });
@@ -87,6 +325,9 @@ function initSectorSplitter(sectorElement) {
 
         resultIframe.classList.add('dragging'); // 추가
 
+        latestMouseX = e.clientX;
+        latestMouseY = e.clientY;
+
         startX = e.clientX;
         const leftWidth = leftContainer.getBoundingClientRect().width;
         const rightWidth = rightContainer.getBoundingClientRect().width;
@@ -94,6 +335,27 @@ function initSectorSplitter(sectorElement) {
 
         startLeftRatio = leftWidth / totalWidth;
         startRightRatio = rightWidth / totalWidth;
+
+        e.preventDefault();
+    });
+
+    horizontalConsoleSplitter.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        currentSplitter = 'horizontalConsole';
+        horizontalConsoleSplitter.classList.add('active');
+
+        resultIframe.classList.add('dragging'); // 추가
+
+        latestMouseX = e.clientX;
+        latestMouseY = e.clientY;
+
+        startY = e.clientY;
+        const resultHeight = resultArea.getBoundingClientRect().height;
+        const consoleHeight = consoleArea.getBoundingClientRect().height;
+        const totalHeight = resultHeight + consoleHeight;
+
+        startResultRatio = resultHeight / totalHeight;
+        startConsoleRatio = consoleHeight / totalHeight;
 
         e.preventDefault();
     });
@@ -109,6 +371,7 @@ function initSectorSplitter(sectorElement) {
             isResizing = false;
             horizontalSplitter.classList.remove('active');
             verticalSplitter.classList.remove('active');
+            horizontalConsoleSplitter.classList.remove('active');
             resultIframe.classList.remove('dragging'); // 추가
             currentSplitter = null;
         }
@@ -125,11 +388,11 @@ function initSectorSplitter(sectorElement) {
                 const newMemoHeight = currentMemoHeight + deltaY;
 
                 const newMemoRatio = newMemoHeight / containerHeight;
-                const newResultRatio = 1 - newMemoRatio;
+                const newDescriptionRatio = 1 - newMemoRatio;
 
                 if (newMemoRatio > 0.1 && newMemoRatio < 0.9) {
                     memoArea.style.flex = `${newMemoRatio} 0 0`;
-                    descriptionArea.style.flex = `${newResultRatio} 0 0`;
+                    descriptionArea.style.flex = `${newDescriptionRatio} 0 0`;
                 }
             } else if (currentSplitter === 'vertical') {
                 const containerWidth = sectorElement.querySelector('.sector-grid-container')
@@ -146,6 +409,20 @@ function initSectorSplitter(sectorElement) {
                 if (newLeftRatio > 0.2 && newLeftRatio < 0.8) {
                     leftContainer.style.flex = `${newLeftRatio} 0 0`;
                     rightContainer.style.flex = `${newRightRatio} 0 0`;
+                }
+            } else if (currentSplitter === 'horizontalConsole') {
+                const containerHeight = rightContainer.getBoundingClientRect().height - 4;
+                const deltaY = latestMouseY - startY;
+
+                const currentResultHeight = containerHeight * startResultRatio;
+                const newResultHeight = currentResultHeight + deltaY;
+
+                const newResultRatio = newResultHeight / containerHeight;
+                const newConsoleRatio = 1 - newResultRatio;
+
+                if (newResultRatio > 0.1 && newResultRatio < 0.9) {
+                    resultArea.style.flex = `${newResultRatio} 0 0`;
+                    consoleArea.style.flex = `${newConsoleRatio} 0 0`;
                 }
             }
         }
@@ -230,6 +507,27 @@ const btn = {
         sectorDiv.innerHTML = `
                 <div class="sector-grid-container">
                     <div class="left-container">
+                        <div class="template-bar">
+                            <button class="template-btn" data-template="button">버튼</button>
+                            <button class="template-btn" data-template="card">카드</button>
+                            <button class="template-btn" data-template="form">폼</button>
+                            <button class="template-btn" data-template="table">테이블</button>
+                            <button class="template-btn" data-template="flexbox">Flexbox</button>
+                        </div>
+                        <div class="library-bar">
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="jquery"> jQuery
+                            </label>
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="bootstrap"> Bootstrap
+                            </label>
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="tailwind"> Tailwind
+                            </label>
+                            <label class="library-checkbox">
+                                <input type="checkbox" data-library="vue"> Vue.js
+                            </label>
+                        </div>
                         <div class="memo-area">
                             <div id="${editorID}" class="ace-editor-input"></div>
                         </div>
@@ -238,10 +536,18 @@ const btn = {
                             <textarea class="description-input" placeholder="설명 입력 구역"></textarea>
                         </div>
                     </div>
-                    <div class="splitter splitter-vertical"></div>
+                    <div class="splitter splitter-vertical"></div>                   
                     <div class="right-container">
                         <div class="result-area">
                             <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
+                        </div>
+                        <div class="splitter splitter-console"></div>
+                        <div class="console-area">
+                            <div class="console-header">
+                                <span>콘솔</span>
+                                <button class="console-clear-btn" onclick="clearConsole(this)">지우기</button>
+                            </div>
+                            <div class="console-output"></div>
                         </div>
                     </div>
                 </div>
@@ -336,11 +642,17 @@ function saveStateToUrl() {
         const descContent = sectorDiv.querySelector('.description-input')?.value || '';
         //const resultContent = sectorDiv.querySelector('.result-output')?.textContent || '';   //어차피 렌더링 새로함 -> 결과는 따로저장x
 
+        const selectedLibraries = [];
+        sectorDiv.querySelectorAll('.library-checkbox input:checked').forEach(checkbox => {
+            selectedLibraries.push(checkbox.dataset.library);
+        });
+
         sectors.push({
             id: sectorDiv.id,
             name: menuName,
             memo: memoContent,
             description: descContent,
+            libraries: selectedLibraries  // 추가
             //result: resultContent
         });
     });
@@ -359,10 +671,14 @@ function saveStateToUrl() {
 
     try {
         const jsonString = JSON.stringify(state);
+        /*
         const utf8EncodedString = encodeURIComponent(jsonString);
         const base64String = btoa(utf8EncodedString);
+        */
 
-        window.location.hash = base64String;
+        // LZString.compressToEncodedURIComponent를 사용하여 URL에 안전하게 압축 (압축률 대략 70%)
+        const compressedData = LZString.compressToEncodedURIComponent(jsonString);
+        window.location.hash = compressedData;
 
     } catch (e) {
         console.error("상태 저장 실패:", e);
@@ -378,8 +694,10 @@ function loadStateFromUrl() {
     }
 
     try {
-        const jsonString = atob(hash);
-        const state = JSON.parse(decodeURIComponent(jsonString));
+        // const jsonString = atob(hash);
+        // const state = JSON.parse(decodeURIComponent(jsonString));
+        const jsonString = LZString.decompressFromEncodedURIComponent(hash);
+        const state = JSON.parse(jsonString);
 
         if (!state.sectors) return;
 
@@ -426,6 +744,27 @@ function loadStateFromUrl() {
             sectorDiv.innerHTML = `
                     <div class="sector-grid-container">
                         <div class="left-container">
+                            <div class="template-bar">
+                                <button class="template-btn" data-template="button">버튼</button>
+                                <button class="template-btn" data-template="card">카드</button>
+                                <button class="template-btn" data-template="form">폼</button>
+                                <button class="template-btn" data-template="table">테이블</button>
+                                <button class="template-btn" data-template="flexbox">Flexbox</button>
+                            </div>
+                            <div class="library-bar">
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="jquery"> jQuery
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="bootstrap"> Bootstrap
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="tailwind"> Tailwind
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="vue"> Vue.js
+                                </label>
+                            </div>
                             <div class="memo-area">
                                 <div id="${editorID}" class="ace-editor-input">${sector.memo || ''}</div>
                             </div>
@@ -439,6 +778,14 @@ function loadStateFromUrl() {
                             <div class="result-area">
                                 <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
                             </div>
+                            <div class="splitter splitter-console"></div>
+                            <div class="console-area">
+                                <div class="console-header">
+                                    <span>콘솔</span>
+                                    <button class="console-clear-btn" onclick="clearConsole(this)">지우기</button>
+                                </div>
+                                <div class="console-output"></div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -450,6 +797,17 @@ function loadStateFromUrl() {
 
             // 추가됨: 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
             initAceEditor(sectorDiv, sector.memo || '');
+
+            // 라이브러리 선택 상태 복원
+            if (sector.libraries && sector.libraries.length > 0) {
+                sector.libraries.forEach(lib => {
+                    const checkbox = sectorDiv.querySelector(`.library-checkbox input[data-library="${lib}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+
         });
 
         if (state.activeSectorId) {
@@ -477,21 +835,106 @@ function loadStateFromUrl() {
     }
 }
 
-// --- 추가: 코드 렌더링 함수 ---
+// --- 코드 렌더링 함수 ---
 function renderCode(sectorElement) {
-    // 1. 해당 섹터에서 입력 영역과 iframe을 찾습니다.
-    // const memoInput = sectorElement.querySelector('.memo-input');
-    // const resultIframe = sectorElement.querySelector('.result-iframe');
-    // if (!memoInput || !resultIframe) return;
-    // const code = memoInput.value;
 
     // 🌟 변경: memoInput 대신 Ace 인스턴스 참조 🌟
     const aceEditor = sectorElement.aceEditorInstance;
     const resultIframe = sectorElement.querySelector('.result-iframe');
+    const consoleOutput = sectorElement.querySelector('.console-output');
+
     if (!aceEditor || !resultIframe) return;
+
+    // 콘솔 초기화
+    if (consoleOutput) {
+        consoleOutput.innerHTML = '';
+    }
 
     // Ace 인스턴스에서 현재 코드 가져오기
     const code = aceEditor.getValue();
+
+    // 선택된 라이브러리 가져오기
+    const selectedLibraries = [];
+    sectorElement.querySelectorAll('.library-checkbox input:checked').forEach(checkbox => {
+        selectedLibraries.push(checkbox.dataset.library);
+    });
+
+    // 라이브러리 태그 생성
+    let libraryTags = '';
+    selectedLibraries.forEach(lib => {
+        const urls = libraryUrls[lib];
+        if (urls) {
+            if (urls.css) {
+                urls.css.forEach(url => {
+                    libraryTags += `<link rel="stylesheet" href="${url}">\n`;
+                });
+            }
+            if (urls.js) {
+                urls.js.forEach(url => {
+                    libraryTags += `<script src="${url}"><\/script>\n`;
+                });
+            }
+        }
+    });
+
+    // 콘솔 오버라이드 스크립트
+    const consoleOverride = `
+        <script>
+            (function() {
+                const originalConsole = {
+                    log: console.log,
+                    error: console.error,
+                    warn: console.warn,
+                    info: console.info
+                };
+                
+                function sendToParent(type, args) {
+                    const message = Array.from(args).map(arg => {
+                        if (typeof arg === 'object') {
+                            try {
+                                return JSON.stringify(arg, null, 2);
+                            } catch (e) {
+                                return String(arg);
+                            }
+                        }
+                        return String(arg);
+                    }).join(' ');
+                    
+                    parent.postMessage({
+                        type: 'console',
+                        logType: type,
+                        message: message
+                    }, '*');
+                }
+                
+                console.log = function() {
+                    sendToParent('log', arguments);
+                    originalConsole.log.apply(console, arguments);
+                };
+                
+                console.error = function() {
+                    sendToParent('error', arguments);
+                    originalConsole.error.apply(console, arguments);
+                };
+                
+                console.warn = function() {
+                    sendToParent('warn', arguments);
+                    originalConsole.warn.apply(console, arguments);
+                };
+                
+                console.info = function() {
+                    sendToParent('info', arguments);
+                    originalConsole.info.apply(console, arguments);
+                };
+                
+                // 에러 캐치
+                window.onerror = function(msg, url, line, col, error) {
+                    sendToParent('error', ['Error: ' + msg + ' (line ' + line + ')']);
+                    return false;
+                };
+            })();
+        <\/script>
+    `;
 
     // 2. 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
     // 사용자가 CSS를 입력했다고 가정하고 <style> 태그로 묶습니다.
@@ -500,6 +943,9 @@ function renderCode(sectorElement) {
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
+                ${consoleOverride}
+                ${libraryTags}
                 <style>
                     /* 기본 margin 제거 및 iframe 크기 조정에 유연하도록 설정 */
                     body { margin: 0; padding: 0; font-family: sans-serif; }
@@ -554,3 +1000,59 @@ function initAceEditor(sectorElement, initialCode) {
     sectorElement.aceEditorInstance = editor;
 }
 
+/**
+ * 콘솔 출력 지우기
+ * @param {HTMLElement} btn - 클릭된 버튼
+ */
+function clearConsole(btn) {
+    const consoleOutput = btn.closest('.console-area').querySelector('.console-output');
+    if (consoleOutput) {
+        consoleOutput.innerHTML = '';
+    }
+}
+
+function downloadHTML() {
+    const activeSector = document.querySelector('.content-sector.active');
+
+    if (!activeSector) {
+        alert('다운로드할 리스트를 선택해주세요.');
+        return;
+    }
+
+    const aceEditor = activeSector.aceEditorInstance;
+    if (!aceEditor) return;
+
+    const code = aceEditor.getValue();
+
+    // 완전한 HTML 문서 생성
+    const content = `<!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Document</title>
+            <style>
+                body { margin: 0; padding: 0; font-family: sans-serif; }
+            </style>
+        </head>
+        <body>
+        ${code}
+        </body>
+        </html>`;
+
+    // 파일명 가져오기 (메뉴 이름 사용)
+    const menuId = activeSector.id.replace('sector-', 'menu-');
+    const menu = document.getElementById(menuId);
+    const fileName = menu ? menu.querySelector('div').textContent.trim() : 'download';
+
+    // Blob 생성 및 다운로드
+    const blob = new Blob([content], { type: 'text/html; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.html`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}

@@ -547,6 +547,8 @@ body {
 .right-container {
     flex: 1;
     min-width: 200px;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
@@ -563,7 +565,7 @@ body {
 }
 
 .result-area {
-    height: 100%;
+    flex: 2;
     overflow: auto;
     min-height: 100px;
     background: #202020;
@@ -613,13 +615,13 @@ body {
 .splitter.active {
     background: #1ed760;
 }
-/* 추가됨: 가로 스플리터 (Memo와 Result 사이) */
-.splitter-horizontal {
+/* 가로 스플리터 */
+.splitter-horizontal, .splitter-console {
     height: 4px;
     cursor: row-resize;
     width: 100%;
 }
-/* 추가됨: 세로 스플리터 (왼쪽과 오른쪽 사이) */
+/* 세로 스플리터 (왼쪽과 오른쪽 사이) */
 .splitter-vertical {
     width: 4px;
     cursor: col-resize;
@@ -629,4 +631,122 @@ body {
 /* 스플리터 때문에 result 영역에서 커서 비활성화*/
 .result-iframe.dragging {
     pointer-events: none;
+}
+
+/* 콘솔 영역 */
+.console-area {
+    flex: 1;
+    min-height: 80px;
+    background: #1a1a1a;
+    border: 1px solid #404040;
+    display: flex;
+    flex-direction: column;
+}
+
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #404040;
+    font-size: 12px;
+    color: #aaa;
+}
+
+.console-clear-btn {
+    background: #404040;
+    border: none;
+    color: #aaa;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.console-clear-btn:hover {
+    background: #555;
+    color: white;
+}
+
+.console-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.console-log {
+    padding: 2px 0;
+    border-bottom: 1px solid #2a2a2a;
+    color: #ddd;
+}
+
+.console-log.error {
+    color: #ff6b6b;
+}
+
+.console-log.warn {
+    color: #ffd93d;
+}
+
+.console-log.info {
+    color: #6bcfff;
+}
+
+
+/* 템플릿 바 */
+.template-bar {
+    display: flex;
+    gap: 5px;
+    padding: 5px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #404040;
+    flex-wrap: wrap;
+}
+
+.template-btn {
+    background: #404040;
+    border: none;
+    color: #ddd;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.template-btn:hover {
+    background: #1db954;
+    color: white;
+}
+
+/* 라이브러리 선택 바 */
+.library-bar {
+    display: flex;
+    gap: 10px;
+    padding: 5px 10px;
+    background: #252525;
+    border-bottom: 1px solid #404040;
+    flex-wrap: wrap;
+}
+
+.library-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #aaa;
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.library-checkbox:hover {
+    color: #ddd;
+}
+
+.library-checkbox input[type="checkbox"] {
+    accent-color: #1db954;
+    cursor: pointer;
 }
