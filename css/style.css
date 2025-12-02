@@ -805,3 +805,15 @@ body {
     accent-color: #1db954;
     cursor: pointer;
 }
+
+.edit-input {
+    background: #282828;
+    border: 1px solid #1db954;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+}

@@ -178,8 +178,108 @@ const libraryUrls = {
     }
 };
 
+
+new Sortable(menuList, {
+    animation: 150,
+    handle: '.menu-link',  // 드래그 핸들 (메뉴 링크 영역)
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    onEnd: function(evt) {
+        // 메뉴 순서에 맞게 섹터 순서도 변경
+        const menuItems = document.querySelectorAll('.menu-sub .menu-item');
+        const contentArea = document.querySelector('.content');
+
+        // 섹터들을 메뉴 순서대로 재배치
+        menuItems.forEach(menuItem => {
+            const menuLink = menuItem.querySelector('.menu-link');
+            const sectorId = menuLink.id.replace('menu-', 'sector-');
+            const sector = document.getElementById(sectorId);
+
+            if (sector) {
+                contentArea.appendChild(sector);
+            }
+        });
+
+        saveStateToUrl();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     loadStateFromUrl();
+
+    menuList.addEventListener('dblclick', (event) => {
+        const menuLink = event.target.closest('.menu-link');
+        if (!menuLink) return;
+
+        const nameDiv = menuLink.querySelector('div');
+        if (!nameDiv) return;
+
+        const currentName = nameDiv.textContent.trim();
+
+        // 이미 편집 중이면 무시
+        if (menuLink.querySelector('.edit-input')) return;
+
+        // input 생성
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'edit-input';
+        input.value = currentName;
+
+        // 기존 이름 숨기고 input 삽입
+        nameDiv.style.display = 'none';
+        menuLink.appendChild(input);
+        input.focus();
+        input.select();
+
+        // 저장 함수
+        const saveName = () => {
+            const newName = input.value.trim();
+
+            if (newName && newName !== currentName) {
+                // 중복 체크
+                const existingNames = Array.from(
+                        document.querySelectorAll('.menu-sub .menu-item div')
+                    )
+                    .map(div => div.textContent.trim())
+                    .filter(name => name !== currentName);
+
+                if (existingNames.includes(newName)) {
+                    alert(`"${newName}" 이름은 이미 존재합니다!`);
+                    nameDiv.style.display = '';
+                    input.remove();
+                    return;
+                }
+
+                nameDiv.textContent = newName;
+                menuLink.setAttribute('data-tooltip', newName);
+                saveStateToUrl();
+            }
+
+            nameDiv.style.display = '';
+            input.remove();
+        };
+
+        // Enter 키로 저장
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveName();
+            }
+            if (e.key === 'Escape') {
+                nameDiv.style.display = '';
+                input.remove();
+            }
+        });
+
+        const cancelEdit = () => {
+            nameDiv.style.display = '';
+            input.remove();
+        };
+
+        // 외곽 클릭시에는 수정 취소
+        input.addEventListener('blur', cancelEdit);
+    });
 
     // 콘솔 메시지 리스너
     window.addEventListener('message', (event) => {
@@ -265,6 +365,9 @@ document.addEventListener('DOMContentLoaded', () => {
      * ESC 키로 전체화면 해제
      */
     document.addEventListener('keydown', (e) => {
+        const activeSector = document.querySelector('.content-sector.active');
+
+        // ESC - 전체화면 해제
         if (e.key === 'Escape') {
             const fullscreenArea = document.querySelector('.result-area.fullscreen');
             if (fullscreenArea) {
@@ -272,6 +375,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleFullscreen(btn);
             }
         }
+
+        // F11 - 전체화면 토글
+        if (e.key === 'F11') {
+            e.preventDefault();
+            if (activeSector) {
+                const btn = activeSector.querySelector('.fullscreen-btn');
+                if (btn) toggleFullscreen(btn);
+            }
+            return;
+        }
+
+        // Ctrl 조합키
+        if (e.ctrlKey) {
+            // Ctrl + S - 저장
+            if (e.key === 's') {
+                /*
+                ** 기능 추가 보류
+                e.preventDefault();
+                saveStateToUrl();
+                showToast('저장되었습니다');
+                 */
+                return;
+            }
+
+            // Ctrl + Enter - 실행
+            if (e.key === 'Enter') {
+                /*
+                ** 기능 추가 보류
+                e.preventDefault();
+                if (activeSector) {
+                    renderCode(activeSector);
+                    showToast('실행되었습니다');
+                }
+                */
+                return;
+            }
+
+            // Ctrl + D - 다운로드
+            if (e.key === 'd') {
+                e.preventDefault();
+                downloadHTML();
+                return;
+            }
+
+            // Ctrl + Shift + F - 포맷팅
+            if (e.shiftKey && e.key === 'F') {
+                e.preventDefault();
+                if (activeSector) {
+                    const formatBtn = activeSector.querySelector('.format-btn');
+                    if (formatBtn) formatCode(formatBtn);
+                }
+                return;
+            }
+        }
+
     });
 
 });
