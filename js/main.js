@@ -221,6 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+
+        // 포맷 버튼 클릭
+        if (event.target.classList.contains('format-btn')) {
+            formatCode(event.target);
+        }
     });
 
     // 라이브러리 체크박스 변경 이벤트
@@ -255,6 +260,20 @@ document.addEventListener('DOMContentLoaded', () => {
     initSplitters();
     // --- 추가: 초기 로드 시 모든 섹터 렌더링 ---
     document.querySelectorAll('.content-sector').forEach(renderCode);
+
+    /**
+     * ESC 키로 전체화면 해제
+     */
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const fullscreenArea = document.querySelector('.result-area.fullscreen');
+            if (fullscreenArea) {
+                const btn = fullscreenArea.querySelector('.fullscreen-btn');
+                toggleFullscreen(btn);
+            }
+        }
+    });
+
 });
 
 // 추가됨: 개별 섹터의 스플리터 초기화
@@ -513,6 +532,7 @@ const btn = {
                             <button class="template-btn" data-template="form">폼</button>
                             <button class="template-btn" data-template="table">테이블</button>
                             <button class="template-btn" data-template="flexbox">Flexbox</button>
+                            <button class="format-btn">코드 정렬</button>
                         </div>
                         <div class="library-bar">
                             <label class="library-checkbox">
@@ -539,6 +559,7 @@ const btn = {
                     <div class="splitter splitter-vertical"></div>                   
                     <div class="right-container">
                         <div class="result-area">
+                            <button class="fullscreen-btn" onclick="toggleFullscreen(this)">⛶</button>
                             <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
                         </div>
                         <div class="splitter splitter-console"></div>
@@ -750,6 +771,7 @@ function loadStateFromUrl() {
                                 <button class="template-btn" data-template="form">폼</button>
                                 <button class="template-btn" data-template="table">테이블</button>
                                 <button class="template-btn" data-template="flexbox">Flexbox</button>
+                                <button class="format-btn">코드 정렬</button>
                             </div>
                             <div class="library-bar">
                                 <label class="library-checkbox">
@@ -776,6 +798,7 @@ function loadStateFromUrl() {
                         <div class="splitter splitter-vertical"></div>
                         <div class="right-container">
                             <div class="result-area">
+                                <button class="fullscreen-btn" onclick="toggleFullscreen(this)">⛶</button>
                                 <iframe class="result-iframe" sandbox="allow-scripts allow-modals"></iframe>
                             </div>
                             <div class="splitter splitter-console"></div>
@@ -1055,4 +1078,64 @@ function downloadHTML() {
     a.click();
 
     URL.revokeObjectURL(url);
+}
+
+
+/**
+ * 코드 포맷팅 (Prettier 사용)
+ * @param {HTMLElement} btnElement - 클릭된 버튼
+ */
+async function formatCode(btnElement) {
+    const sectorElement = btnElement.closest('.content-sector');
+    if (!sectorElement || !sectorElement.aceEditorInstance) return;
+
+    const editor = sectorElement.aceEditorInstance;
+    const code = editor.getValue();
+
+    if (!code.trim()) return;
+
+    // 버튼 비활성화 (중복 클릭 방지)
+    btnElement.disabled = true;
+    btnElement.textContent = '정리 중...';
+
+    try {
+        const formatted = await prettier.format(code, {
+            parser: 'html',
+            plugins: prettierPlugins,
+            tabWidth: 4,
+            printWidth: 80,
+            htmlWhitespaceSensitivity: 'ignore'
+        });
+
+        editor.setValue(formatted, -1);
+        saveStateToUrl();
+        renderCode(sectorElement);
+
+    } catch (e) {
+        console.error('포맷팅 실패:', e);
+        alert('코드 포맷팅에 실패했습니다. 문법 오류가 있는지 확인해주세요.');
+    } finally {
+        btnElement.disabled = false;
+        btnElement.textContent = '코드 정렬';
+    }
+}
+
+/**
+ * 미리보기 전체화면 토글
+ * @param {HTMLElement} btnElement - 클릭된 버튼
+ */
+function toggleFullscreen(btnElement) {
+    const resultArea = btnElement.closest('.result-area');
+
+    if (resultArea.classList.contains('fullscreen')) {
+        // 전체화면 해제
+        resultArea.classList.remove('fullscreen');
+        btnElement.textContent = '⛶';
+        document.body.style.overflow = '';
+    } else {
+        // 전체화면 진입
+        resultArea.classList.add('fullscreen');
+        btnElement.textContent = '✕';
+        document.body.style.overflow = 'hidden';
+    }
 }
