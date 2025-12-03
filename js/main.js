@@ -156,7 +156,54 @@ const codeTemplates = {
     text-align: center;
     border-radius: 4px;
 }
-</style>`
+</style>`,
+    sample: `
+    <div class="container">
+  <h1>Hello World!</h1>
+  <p>Live Editor에 오신 것을 환영합니다.</p>
+  <button id="myBtn">클릭하세요</button>
+  <p id="output"></p>
+</div>
+
+<style>
+.container {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  color: #333;
+}
+
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+</style>
+<script>
+const btn = document.getElementById('myBtn');
+const output = document.getElementById('output');
+let count = 0;
+
+btn.addEventListener('click', () => {
+  count++;
+  output.textContent = count + '번 클릭했습니다!';
+  console.log('버튼 클릭:', count);
+});
+
+console.log('JavaScript가 로드되었습니다!');
+</script>
+    `
+
 };
 
 /**
@@ -1296,4 +1343,14 @@ function toggleFullscreen(btnElement) {
         btnElement.textContent = '✕';
         document.body.style.overflow = 'hidden';
     }
+}
+
+// 모달 열기
+function openModal() {
+    document.getElementById('introlistModal').classList.add('show');
+}
+
+// 모달 닫기
+function closeModal() {
+    document.getElementById('introlistModal').classList.remove('show');
 }

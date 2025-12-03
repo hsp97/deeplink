@@ -82,6 +82,9 @@
                 <div class="topbar_menu" onclick="downloadHTML()">
                     다운로드
                 </div>
+                <div class="topbar_menu" onclick="openModal()">
+                    사용소개
+                </div>
             </header>
         </div>
 
@@ -89,6 +92,59 @@
             <!-- 변경됨: 기본 스플리터 구조를 content-sector 내부로 이동 -->
         </main>
 
+    </div>
+</div>
+
+<div id="introlistModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Live Editor 소개</h2>
+            <button class="close-button" onclick="closeModal()">×</button>
+        </div>
+
+        <p style="color: #aaa; margin-bottom: 15px;">
+            <strong id="selectedSongTitle">HTML, CSS, JavaScript를 테스트할 수 있는 간단한 코드 플레이그라운드입니다</strong>
+            <br>미리보기는 보안을 위해 샌드박스된 iframe에서 실행됩니다. JavaScript의 콘솔 로그는 아래 콘솔 패널에 캡처되어 표시됩니다.
+            <br> 빠른 프로토타이핑, 페이로드 테스트, 또는 웹 개발 학습에 활용하세요.
+        </p>
+
+        <ul class="intro-list">
+            <li class="intro-list-item">
+                <span class="intro-list-icon">1</span>
+                <div>
+                    <div style="font-weight: 600;">좌측 메뉴에서 리스트를 추가해서 코드 입력 페이지를 추가하세요</div>
+                    <div style="font-size: 12px; color: #aaa;">이름을 더블클릭하여 리스트 이름을 수정할 수 있고 드래그를 해서 메뉴 순서 변경이 가능합니다</div>
+                </div>
+            </li>
+            <li class="intro-list-item">
+                <span class="intro-list-icon">2</span>
+                <div>
+                    <div style="font-weight: 600;">세팅된 버튼</div>
+                    <div style="font-size: 12px; color: #aaa;">세팅된 버튼을 누르면 간단한 예시 코드가 세팅 됩니다.</div>
+                </div>
+            </li>
+            <li class="intro-list-item">
+                <span class="intro-list-icon">3</span>
+                <div>
+                    <div style="font-weight: 600;">프레임워크 세팅</div>
+                    <div style="font-size: 12px; color: #aaa;">필요한 라이브러리를 체크해서 불러올 수 있습니다.</div>
+                </div>
+            </li>
+            <li class="intro-list-item">
+                <span class="intro-list-icon">4</span>
+                <div>
+                    <div style="font-weight: 600;">코드 공유</div>
+                    <div style="font-size: 12px; color: #aaa;">자신이 작성한 코드를 URL 복사만으로 타인과 공유할 수 있습니다.</div>
+                </div>
+            </li>
+            <li class="intro-list-item">
+                <span class="intro-list-icon">5</span>
+                <div>
+                    <div style="font-weight: 600;">html 다운로드</div>
+                    <div style="font-size: 12px; color: #aaa;">현재 띄워놓은 리스트의 코드를 다운로드 받을 수 있습니다.</div>
+                </div>
+            </li>
+        </ul>
     </div>
 </div>
 
