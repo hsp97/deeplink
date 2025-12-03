@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hsp97.github.io/deeplink/sitemap.xml
