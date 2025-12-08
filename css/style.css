@@ -730,3 +730,93 @@ body {
     box-sizing: border-box;
     outline: none;
 }
+
+/* 에디터 탭 */
+.editor-tabs {
+    display: flex;
+    background: #1a1a1a;
+    border-bottom: 1px solid #404040;
+}
+
+.editor-tab {
+    padding: 5px 10px;
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+
+.editor-tab:hover {
+    color: #ddd;
+    background: #252525;
+}
+
+.editor-tab.active {
+    color: #1db954;
+    border-bottom: 2px solid #1db954;
+    background: #252525;
+}
+
+/* 탭 내용 */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 언어 선택 바 */
+.language-bar {
+    display: flex;
+    gap: 15px;
+    padding: 8px 10px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #404040;
+    align-items: center;
+}
+
+.language-radio {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #aaa;
+    font-size: 13px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.language-radio:hover {
+    color: #ddd;
+}
+
+.language-radio input[type="radio"] {
+    accent-color: #1db954;
+    cursor: pointer;
+}
+
+/* 실행 버튼 */
+.run-btn {
+    margin-left: auto;
+    background: #1db954;
+    border: none;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.run-btn:hover {
+    background: #1ed760;
+}
+
+.run-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
