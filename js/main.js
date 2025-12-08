@@ -6,6 +6,8 @@ const mainContent = document.querySelector('.content');
 // 디바운싱을 위한 타이머 변수
 let saveTimer = null;
 
+// 실시간 렌더링 활성화 유무
+let liveMode = true;
 /**
  * 코드 템플릿 모음
  */
@@ -226,6 +228,124 @@ const libraryUrls = {
 };
 
 
+/**
+ * 클릭 이벤트 핸들러 모음
+ */
+const clickHandlers = {
+    // 탭 전환
+    handleTabClick: function(event, sectorElement) {
+        const tab = event.target.closest('.editor-tab');
+        if (!tab) return false;
+
+        const tabType = tab.dataset.tab;
+
+        sectorElement.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        sectorElement.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        sectorElement.querySelector(`.${tabType}-content`).classList.add('active');
+
+        const editor = sectorElement.aceEditorInstance;
+        if (editor) {
+            const resultArea = sectorElement.querySelector('.result-area'); // result 영역
+            const consoleArea = sectorElement.querySelector('.console-area'); // console 영역
+
+            // 프론트엔드와 백엔드 콘솔창 비율 조절
+            if (tabType === 'backend') {
+                const language = sectorElement.querySelector('.language-radio input:checked').value;
+                updateEditorMode(editor, language);
+
+                resultArea.style.flex = `1 0 0`;
+                consoleArea.style.flex = `15 0 0`;
+            } else {
+                updateEditorMode(editor, 'html');
+
+                resultArea.style.flex = `4 0 0`;
+                consoleArea.style.flex = `1 0 0`;
+            }
+        }
+        return true;
+    },
+
+    // 템플릿 버튼
+    handleTemplateClick: function(event, sectorElement) {
+        if (!event.target.classList.contains('template-btn')) return false;
+
+        const templateName = event.target.dataset.template;
+        const template = codeTemplates[templateName];
+
+        if (template && sectorElement.aceEditorInstance) {
+            const editor = sectorElement.aceEditorInstance;
+            editor.insert(template + '\n');
+            editor.focus();
+            saveStateToUrl();
+            renderCode(sectorElement);
+        }
+        return true;
+    },
+
+    // 포맷 버튼
+    handleFormatClick: function(event, sectorElement) {
+        if (!event.target.classList.contains('format-btn')) return false;
+        formatCode(event.target);
+        return true;
+    },
+
+    // 실행 버튼
+    handleRunClick: async function(event, sectorElement) {
+        if (!event.target.classList.contains('run-btn')) return false;
+
+        const btn = event.target;
+        const editor = sectorElement.aceEditorInstance;
+        if (!editor) return true;
+
+        const code = editor.getValue();
+        if (!code.trim()) {
+            alert('실행할 코드를 입력하세요.');
+            return true;
+        }
+
+        const languageInput = sectorElement.querySelector('.language-radio input:checked');
+        const language = languageInput ? languageInput.value : 'python';
+        const consoleOutput = sectorElement.querySelector('.console-output');
+
+        btn.disabled = true;
+        btn.textContent = '실행 중...';
+        consoleOutput.innerHTML = '';
+
+        appendConsoleLog(consoleOutput, `[${language.toUpperCase()}] 코드 실행 중...`, 'info');
+
+        try {
+            const result = await executeCode(language, code);
+
+            if (result.run) {
+                if (result.run.stdout) {
+                    appendConsoleLog(consoleOutput, result.run.stdout, 'log');
+                }
+                if (result.run.stderr) {
+                    appendConsoleLog(consoleOutput, result.run.stderr, 'error');
+                }
+                if (!result.run.stdout && !result.run.stderr) {
+                    appendConsoleLog(consoleOutput, '(출력 없음)', 'info');
+                }
+                appendConsoleLog(consoleOutput, `[완료] 실행 시간: ${result.run.time || 0}ms`, 'info');
+            }
+
+            if (result.message) {
+                appendConsoleLog(consoleOutput, `[에러] ${result.message}`, 'error');
+            }
+        } catch (error) {
+            appendConsoleLog(consoleOutput, `[에러] API 호출 실패: ${error.message}`, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '▶ 실행';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        return true;
+    }
+};
+
+
 new Sortable(menuList, {
     animation: 150,
     handle: '.menu-link',  // 드래그 핸들 (메뉴 링크 영역)
@@ -348,37 +468,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 템플릿 버튼 클릭 이벤트 (이벤트 위임)
-    mainContent.addEventListener('click', (event) => {
-        if (event.target.classList.contains('template-btn')) {
-            const templateName = event.target.dataset.template;
-            const template = codeTemplates[templateName];
+    mainContent.addEventListener('click', async (event) => {
 
-            if (template) {
-                const sectorElement = event.target.closest('.content-sector');
-                if (sectorElement && sectorElement.aceEditorInstance) {
-                    const editor = sectorElement.aceEditorInstance;
+        const sectorElement = event.target.closest('.content-sector');
+        if (!sectorElement) return;
 
-                    // 현재 커서 위치에 삽입
-                    editor.insert(template);
-                    editor.focus()
+        // 각 핸들러 순차 실행 (처리되면 중단)
+        if (clickHandlers.handleTabClick(event, sectorElement)) return;
+        if (clickHandlers.handleTemplateClick(event, sectorElement)) return;
+        if (clickHandlers.handleFormatClick(event, sectorElement)) return;
+        await clickHandlers.handleRunClick(event, sectorElement);
 
-                    // 저장 및 렌더링
-                    saveStateToUrl();
-                    renderCode(sectorElement);
-                }
-            }
-        }
-
-        // 포맷 버튼 클릭
-        if (event.target.classList.contains('format-btn')) {
-            formatCode(event.target);
-        }
     });
 
     // 라이브러리 체크박스 변경 이벤트
     mainContent.addEventListener('change', (event) => {
+
+        const sectorElement = event.target.closest('.content-sector');
+
+        if (event.target.matches('.language-radio input[type="radio"]')) {
+            const editor = sectorElement.aceEditorInstance;
+            if (editor) {
+                updateEditorMode(editor, event.target.value);
+            }
+        }
+
         if (event.target.matches('.library-checkbox input[type="checkbox"]')) {
-            const sectorElement = event.target.closest('.content-sector');
             if (sectorElement) {
                 saveStateToUrl();
                 renderCode(sectorElement);
@@ -731,27 +846,47 @@ const btn = {
         sectorDiv.innerHTML = `
                 <div class="sector-grid-container">
                     <div class="left-container">
-                        <div class="template-bar">
-                            <button class="template-btn" data-template="button">버튼</button>
-                            <button class="template-btn" data-template="card">카드</button>
-                            <button class="template-btn" data-template="form">폼</button>
-                            <button class="template-btn" data-template="table">테이블</button>
-                            <button class="template-btn" data-template="flexbox">Flexbox</button>
-                            <button class="format-btn">코드 정렬</button>
+                        <div class="editor-tabs">
+                            <button class="editor-tab active" data-tab="frontend">프론트엔드</button>
+                            <button class="editor-tab" data-tab="backend">백엔드</button>
                         </div>
-                        <div class="library-bar">
-                            <label class="library-checkbox">
-                                <input type="checkbox" data-library="jquery"> jQuery
-                            </label>
-                            <label class="library-checkbox">
-                                <input type="checkbox" data-library="bootstrap"> Bootstrap
-                            </label>
-                            <label class="library-checkbox">
-                                <input type="checkbox" data-library="tailwind"> Tailwind
-                            </label>
-                            <label class="library-checkbox">
-                                <input type="checkbox" data-library="vue"> Vue.js
-                            </label>
+                        <div class="tab-content frontend-content active">
+                            <div class="template-bar">
+                                <button class="template-btn" data-template="button">버튼</button>
+                                <button class="template-btn" data-template="card">카드</button>
+                                <button class="template-btn" data-template="form">폼</button>
+                                <button class="template-btn" data-template="table">테이블</button>
+                                <button class="template-btn" data-template="flexbox">Flexbox</button>
+                                <button class="format-btn">코드 정렬</button>
+                            </div>
+                            <div class="library-bar">
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="jquery"> jQuery
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="bootstrap"> Bootstrap
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="tailwind"> Tailwind
+                                </label>
+                                <label class="library-checkbox">
+                                    <input type="checkbox" data-library="vue"> Vue.js
+                                </label>
+                            </div>
+                        </div>
+                        <div class="tab-content backend-content">
+                            <div class="language-bar">
+                                <label class="language-radio">
+                                    <input type="radio" name="language-${itemCounter}" value="python" checked> Python
+                                </label>
+                                <label class="language-radio">
+                                    <input type="radio" name="language-${itemCounter}" value="java"> Java
+                                </label>
+                                <label class="language-radio">
+                                    <input type="radio" name="language-${itemCounter}" value="php"> PHP
+                                </label>
+                                <button class="run-btn">▶ 실행</button>
+                            </div>
                         </div>
                         <div class="memo-area">
                             <div id="${editorID}" class="ace-editor-input"></div>
@@ -970,27 +1105,47 @@ function loadStateFromUrl() {
             sectorDiv.innerHTML = `
                     <div class="sector-grid-container">
                         <div class="left-container">
-                            <div class="template-bar">
-                                <button class="template-btn" data-template="button">버튼</button>
-                                <button class="template-btn" data-template="card">카드</button>
-                                <button class="template-btn" data-template="form">폼</button>
-                                <button class="template-btn" data-template="table">테이블</button>
-                                <button class="template-btn" data-template="flexbox">Flexbox</button>
-                                <button class="format-btn">코드 정렬</button>
+                            <div class="editor-tabs">
+                                <button class="editor-tab active" data-tab="frontend">프론트엔드</button>
+                                <button class="editor-tab" data-tab="backend">백엔드</button>
                             </div>
-                            <div class="library-bar">
-                                <label class="library-checkbox">
-                                    <input type="checkbox" data-library="jquery"> jQuery
-                                </label>
-                                <label class="library-checkbox">
-                                    <input type="checkbox" data-library="bootstrap"> Bootstrap
-                                </label>
-                                <label class="library-checkbox">
-                                    <input type="checkbox" data-library="tailwind"> Tailwind
-                                </label>
-                                <label class="library-checkbox">
-                                    <input type="checkbox" data-library="vue"> Vue.js
-                                </label>
+                            <div class="tab-content frontend-content active">
+                                <div class="template-bar">
+                                    <button class="template-btn" data-template="button">버튼</button>
+                                    <button class="template-btn" data-template="card">카드</button>
+                                    <button class="template-btn" data-template="form">폼</button>
+                                    <button class="template-btn" data-template="table">테이블</button>
+                                    <button class="template-btn" data-template="flexbox">Flexbox</button>
+                                    <button class="format-btn">코드 정렬</button>
+                                </div>
+                                <div class="library-bar">
+                                    <label class="library-checkbox">
+                                        <input type="checkbox" data-library="jquery"> jQuery
+                                    </label>
+                                    <label class="library-checkbox">
+                                        <input type="checkbox" data-library="bootstrap"> Bootstrap
+                                    </label>
+                                    <label class="library-checkbox">
+                                        <input type="checkbox" data-library="tailwind"> Tailwind
+                                    </label>
+                                    <label class="library-checkbox">
+                                        <input type="checkbox" data-library="vue"> Vue.js
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="tab-content backend-content">
+                                <div class="language-bar">
+                                    <label class="language-radio">
+                                        <input type="radio" name="language-${sector.id}" value="python" checked> Python
+                                    </label>
+                                    <label class="language-radio">
+                                        <input type="radio" name="language-${sector.id}" value="java"> Java
+                                    </label>
+                                    <label class="language-radio">
+                                        <input type="radio" name="language-${sector.id}" value="php"> PHP
+                                    </label>
+                                    <button class="run-btn">▶ 실행</button>
+                                </div>
                             </div>
                             <div class="memo-area">
                                 <div id="${editorID}" class="ace-editor-input">${sector.memo || ''}</div>
@@ -1065,6 +1220,10 @@ function loadStateFromUrl() {
 
 // --- 코드 렌더링 함수 ---
 function renderCode(sectorElement) {
+
+    if(!liveMode){
+        return;
+    }
 
     // 🌟 변경: memoInput 대신 Ace 인스턴스 참조 🌟
     const aceEditor = sectorElement.aceEditorInstance;
@@ -1353,4 +1512,50 @@ function openModal() {
 // 모달 닫기
 function closeModal() {
     document.getElementById('introlistModal').classList.remove('show');
+}
+
+function updateEditorMode(editor, language) {
+    const modeMap = {
+        python: 'ace/mode/python',
+        java: 'ace/mode/java',
+        php: 'ace/mode/php',
+        html: 'ace/mode/html'
+    };
+
+    if (language == 'html') {
+        liveMode = true;
+    } else {
+        liveMode = false;
+    }
+    editor.session.setMode(modeMap[language] || 'ace/mode/text');
+}
+
+/**
+ * Piston API로 코드 실행
+ * @param {string} language - 언어 (python, java, php)
+ * @param {string} code - 실행할 코드
+ * @returns {Promise<object>} - 실행 결과
+ */
+async function executeCode(language, code) {
+    const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            language: language,
+            version: '*',
+            files: [{ content: code }]
+        })
+    });
+
+    return await response.json();
+}
+
+/**
+ * 콘솔 로그 추가 헬퍼 함수
+ */
+function appendConsoleLog(consoleOutput, message, type) {
+    const logDiv = document.createElement('div');
+    logDiv.className = `console-log ${type}`;
+    logDiv.textContent = message;
+    consoleOutput.appendChild(logDiv);
 }
