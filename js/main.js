@@ -885,6 +885,9 @@ const btn = {
                                 <label class="language-radio">
                                     <input type="radio" name="language-${itemCounter}" value="php"> PHP
                                 </label>
+                                <label class="language-radio">
+                                    <input type="radio" name="language-${itemCounter}" value="typescript"> Typescript
+                                </label>
                                 <button class="run-btn">▶ 실행</button>
                             </div>
                         </div>
@@ -1519,6 +1522,7 @@ function updateEditorMode(editor, language) {
         python: 'ace/mode/python',
         java: 'ace/mode/java',
         php: 'ace/mode/php',
+        typescript: 'ace/mode/typescript',
         html: 'ace/mode/html'
     };
 
