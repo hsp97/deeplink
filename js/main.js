@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 변경됨: 디바운싱 추가 (500ms)
+    // 디바운싱 추가 (500ms)
     // textarea 가 변경될때마다 renderCode 를 실행시킴
     mainContent.addEventListener('input', (event) => {
         if (event.target.tagName === 'TEXTAREA') {
@@ -518,9 +518,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 추가됨: 스플리터 초기화
+    // 스플리터 초기화
     initSplitters();
-    // --- 추가: 초기 로드 시 모든 섹터 렌더링 ---
+    // --- 초기 로드 시 모든 섹터 렌더링 ---
     document.querySelectorAll('.content-sector').forEach(renderCode);
 
     /**
@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-// 추가됨: 개별 섹터의 스플리터 초기화
+// 개별 섹터의 스플리터 초기화
 function initSectorSplitter(sectorElement) {
     const horizontalSplitter = sectorElement.querySelector('.splitter-horizontal');
     const verticalSplitter = sectorElement.querySelector('.splitter-vertical');
@@ -836,7 +836,7 @@ const btn = {
         li.appendChild(a);
         menuList.appendChild(li);
 
-        // 수정됨: 스플리터 구조로 content-sector 생성
+        // 스플리터 구조로 content-sector 생성
         const sectorDiv = document.createElement('div');
         sectorDiv.className = 'content-sector';
         sectorDiv.id = itemID;
@@ -919,10 +919,10 @@ const btn = {
 
         mainContent.appendChild(sectorDiv);
 
-        // 추가됨: 새로 생성된 섹터의 스플리터 초기화
+        // 새로 생성된 섹터의 스플리터 초기화
         initSectorSplitter(sectorDiv);
 
-        // 추가됨: 새로 생성된 섹터에 Ace Editor 초기화
+        // 새로 생성된 섹터에 Ace Editor 초기화
         initAceEditor(sectorDiv, '');
 
         this.changeSector(itemID, a);
@@ -997,9 +997,9 @@ function saveStateToUrl() {
         const menuItem = document.querySelectorAll('.menu-sub .menu-item')[index];
         const menuName = menuItem.querySelector('div').textContent;
 
-        // 수정됨: 스플리터 구조에서 textarea 찾기
+        // 스플리터 구조에서 textarea 찾기
         // const memoContent = sectorDiv.querySelector('.memo-input')?.value || '';
-        // 🌟 변경: textarea 대신 Ace 인스턴스에서 코드 가져오기 🌟
+        // Ace 인스턴스에서 코드 가져오기
         const aceEditor = sectorDiv.aceEditorInstance;
         const memoContent = aceEditor ? aceEditor.getValue() : sectorDiv.querySelector('.ace-editor-input')?.textContent || '';
 
@@ -1147,6 +1147,9 @@ function loadStateFromUrl() {
                                     <label class="language-radio">
                                         <input type="radio" name="language-${sector.id}" value="php"> PHP
                                     </label>
+                                    <label class="language-radio">
+                                        <input type="radio" name="language-${sector.id}" value="typescript"> Typescript
+                                    </label>
                                     <button class="run-btn">▶ 실행</button>
                                 </div>
                             </div>
@@ -1178,10 +1181,10 @@ function loadStateFromUrl() {
 
             mainContent.appendChild(sectorDiv);
 
-            // 추가됨: 복원된 섹터의 스플리터 초기화
+            // 복원된 섹터의 스플리터 초기화
             initSectorSplitter(sectorDiv);
 
-            // 추가됨: 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
+            // 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
             initAceEditor(sectorDiv, sector.memo || '');
 
             // 라이브러리 선택 상태 복원
@@ -1228,7 +1231,7 @@ function renderCode(sectorElement) {
         return;
     }
 
-    // 🌟 변경: memoInput 대신 Ace 인스턴스 참조 🌟
+    // Ace 인스턴스 참조
     const aceEditor = sectorElement.aceEditorInstance;
     const resultIframe = sectorElement.querySelector('.result-iframe');
     const consoleOutput = sectorElement.querySelector('.console-output');
@@ -1326,7 +1329,7 @@ function renderCode(sectorElement) {
         <\/script>
     `;
 
-    // 2. 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
+    // 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
     // 사용자가 CSS를 입력했다고 가정하고 <style> 태그로 묶습니다.
     // HTML 코드는 <body> 안에 삽입됩니다.
     const content = `
@@ -1347,11 +1350,11 @@ function renderCode(sectorElement) {
             </html>
         `;
 
-    // 3. iframe에 콘텐츠를 씁니다.// srcdoc 사용
+    // iframe에 콘텐츠를 씁니다.// srcdoc 사용
     resultIframe.srcdoc = content;
 }
 
-// --- 추가: Ace Editor 초기화 및 이벤트 연결 함수 ---
+// --- Ace Editor 초기화 및 이벤트 연결 함수 ---
 function initAceEditor(sectorElement, initialCode) {
     const editorID = sectorElement.querySelector('.ace-editor-input').id;
 
