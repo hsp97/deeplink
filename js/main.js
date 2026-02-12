@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 디바운싱마다 url로 현재상태 저장
                 saveStateToUrl();
-                // --- 추가: 렌더링 호출 ---
+                // 렌더링 호출
                 renderCode(sectorElement);
             }, 500);
         }
@@ -796,7 +796,7 @@ const btn = {
             return;
         }
 
-        // 추가됨: 동일한 이름 체크
+        // 동일한 이름 체크
         const existingNames = Array.from(document.querySelectorAll('.menu-sub .menu-item div'))
             .map(div => div.textContent.trim());
 
