@@ -1011,14 +1011,25 @@ function saveStateToUrl() {
             selectedLibraries.push(checkbox.dataset.library);
         });
 
+        // 현재 활성 탭 (프론트엔드/백엔드)
+        const activeTab = sectorDiv.querySelector('.editor-tab.active');
+        const selectedEditor = activeTab ? activeTab.dataset.tab : 'frontend';
+
+        // 선택된 언어 (백엔드용)
+        const languageInput = sectorDiv.querySelector('.language-radio input:checked');
+        const selectedLanguage = languageInput ? languageInput.value : 'python';
+
         sectors.push({
             id: sectorDiv.id,
             name: menuName,
             memo: memoContent,
             description: descContent,
-            libraries: selectedLibraries  // 추가
+            libraries: selectedLibraries,
+            editor: selectedEditor,
+            language: selectedLanguage
             //result: resultContent
         });
+
     });
 
     const activeMenu = document.querySelector('.menu-link.active');
@@ -1099,7 +1110,7 @@ function loadStateFromUrl() {
             li.appendChild(a);
             menuList.appendChild(li);
 
-            // 수정됨: 스플리터 구조로 복원
+            // 스플리터 구조로 복원
             const sectorDiv = document.createElement('div');
             sectorDiv.className = 'content-sector';
             sectorDiv.id = sector.id;
@@ -1109,10 +1120,10 @@ function loadStateFromUrl() {
                     <div class="sector-grid-container">
                         <div class="left-container">
                             <div class="editor-tabs">
-                                <button class="editor-tab active" data-tab="frontend">프론트엔드</button>
+                                <button class="editor-tab" data-tab="frontend">프론트엔드</button>
                                 <button class="editor-tab" data-tab="backend">백엔드</button>
                             </div>
-                            <div class="tab-content frontend-content active">
+                            <div class="tab-content frontend-content">
                                 <div class="template-bar">
                                     <button class="template-btn" data-template="button">버튼</button>
                                     <button class="template-btn" data-template="card">카드</button>
@@ -1185,7 +1196,8 @@ function loadStateFromUrl() {
             initSectorSplitter(sectorDiv);
 
             // 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
-            initAceEditor(sectorDiv, sector.memo || '');
+            const initialMode = (sector.editor === 'backend') ? (sector.language || 'python') : 'html';
+            initAceEditor(sectorDiv, sector.memo || '', initialMode);
 
             // 라이브러리 선택 상태 복원
             if (sector.libraries && sector.libraries.length > 0) {
@@ -1195,6 +1207,29 @@ function loadStateFromUrl() {
                         checkbox.checked = true;
                     }
                 });
+            }
+
+            // 탭 상태 복원
+            if (sector.editor) {
+                sectorDiv.querySelectorAll('.editor-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.tab === sector.editor) {
+                        tab.classList.add('active');
+                    }
+                });
+
+                sectorDiv.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                sectorDiv.querySelector(`.${sector.editor}-content`)?.classList.add('active');
+            }
+
+            // 언어 상태 복원
+            if (sector.language) {
+                const languageInput = sectorDiv.querySelector(`.language-radio input[value="${sector.language}"]`);
+                if (languageInput) {
+                    languageInput.checked = true;
+                }
             }
 
         });
@@ -1355,7 +1390,7 @@ function renderCode(sectorElement) {
 }
 
 // --- Ace Editor 초기화 및 이벤트 연결 함수 ---
-function initAceEditor(sectorElement, initialCode) {
+function initAceEditor(sectorElement, initialCode, initialMode = 'html') {
     const editorID = sectorElement.querySelector('.ace-editor-input').id;
 
     // Ace 인스턴스 생성
@@ -1389,6 +1424,8 @@ function initAceEditor(sectorElement, initialCode) {
         }, 500);
     });
 
+    // 전달받은 모드로 설정
+    updateEditorMode(editor, initialMode);
     // Ace 인스턴스를 섹터 요소에 저장하여 나중에 접근할 수 있게 함
     sectorElement.aceEditorInstance = editor;
 }
