@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 변경됨: 디바운싱 추가 (500ms)
+    // 디바운싱 추가 (500ms)
     // textarea 가 변경될때마다 renderCode 를 실행시킴
     mainContent.addEventListener('input', (event) => {
         if (event.target.tagName === 'TEXTAREA') {
@@ -512,15 +512,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 디바운싱마다 url로 현재상태 저장
                 saveStateToUrl();
-                // --- 추가: 렌더링 호출 ---
+                // 렌더링 호출
                 renderCode(sectorElement);
             }, 500);
         }
     });
 
-    // 추가됨: 스플리터 초기화
+    // 스플리터 초기화
     initSplitters();
-    // --- 추가: 초기 로드 시 모든 섹터 렌더링 ---
+    // --- 초기 로드 시 모든 섹터 렌더링 ---
     document.querySelectorAll('.content-sector').forEach(renderCode);
 
     /**
@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-// 추가됨: 개별 섹터의 스플리터 초기화
+// 개별 섹터의 스플리터 초기화
 function initSectorSplitter(sectorElement) {
     const horizontalSplitter = sectorElement.querySelector('.splitter-horizontal');
     const verticalSplitter = sectorElement.querySelector('.splitter-vertical');
@@ -796,7 +796,7 @@ const btn = {
             return;
         }
 
-        // 추가됨: 동일한 이름 체크
+        // 동일한 이름 체크
         const existingNames = Array.from(document.querySelectorAll('.menu-sub .menu-item div'))
             .map(div => div.textContent.trim());
 
@@ -836,7 +836,7 @@ const btn = {
         li.appendChild(a);
         menuList.appendChild(li);
 
-        // 수정됨: 스플리터 구조로 content-sector 생성
+        // 스플리터 구조로 content-sector 생성
         const sectorDiv = document.createElement('div');
         sectorDiv.className = 'content-sector';
         sectorDiv.id = itemID;
@@ -919,10 +919,10 @@ const btn = {
 
         mainContent.appendChild(sectorDiv);
 
-        // 추가됨: 새로 생성된 섹터의 스플리터 초기화
+        // 새로 생성된 섹터의 스플리터 초기화
         initSectorSplitter(sectorDiv);
 
-        // 추가됨: 새로 생성된 섹터에 Ace Editor 초기화
+        // 새로 생성된 섹터에 Ace Editor 초기화
         initAceEditor(sectorDiv, '');
 
         this.changeSector(itemID, a);
@@ -997,9 +997,9 @@ function saveStateToUrl() {
         const menuItem = document.querySelectorAll('.menu-sub .menu-item')[index];
         const menuName = menuItem.querySelector('div').textContent;
 
-        // 수정됨: 스플리터 구조에서 textarea 찾기
+        // 스플리터 구조에서 textarea 찾기
         // const memoContent = sectorDiv.querySelector('.memo-input')?.value || '';
-        // 🌟 변경: textarea 대신 Ace 인스턴스에서 코드 가져오기 🌟
+        // Ace 인스턴스에서 코드 가져오기
         const aceEditor = sectorDiv.aceEditorInstance;
         const memoContent = aceEditor ? aceEditor.getValue() : sectorDiv.querySelector('.ace-editor-input')?.textContent || '';
 
@@ -1011,14 +1011,25 @@ function saveStateToUrl() {
             selectedLibraries.push(checkbox.dataset.library);
         });
 
+        // 현재 활성 탭 (프론트엔드/백엔드)
+        const activeTab = sectorDiv.querySelector('.editor-tab.active');
+        const selectedEditor = activeTab ? activeTab.dataset.tab : 'frontend';
+
+        // 선택된 언어 (백엔드용)
+        const languageInput = sectorDiv.querySelector('.language-radio input:checked');
+        const selectedLanguage = languageInput ? languageInput.value : 'python';
+
         sectors.push({
             id: sectorDiv.id,
             name: menuName,
             memo: memoContent,
             description: descContent,
-            libraries: selectedLibraries  // 추가
+            libraries: selectedLibraries,
+            editor: selectedEditor,
+            language: selectedLanguage
             //result: resultContent
         });
+
     });
 
     const activeMenu = document.querySelector('.menu-link.active');
@@ -1099,7 +1110,7 @@ function loadStateFromUrl() {
             li.appendChild(a);
             menuList.appendChild(li);
 
-            // 수정됨: 스플리터 구조로 복원
+            // 스플리터 구조로 복원
             const sectorDiv = document.createElement('div');
             sectorDiv.className = 'content-sector';
             sectorDiv.id = sector.id;
@@ -1109,10 +1120,10 @@ function loadStateFromUrl() {
                     <div class="sector-grid-container">
                         <div class="left-container">
                             <div class="editor-tabs">
-                                <button class="editor-tab active" data-tab="frontend">프론트엔드</button>
+                                <button class="editor-tab" data-tab="frontend">프론트엔드</button>
                                 <button class="editor-tab" data-tab="backend">백엔드</button>
                             </div>
-                            <div class="tab-content frontend-content active">
+                            <div class="tab-content frontend-content">
                                 <div class="template-bar">
                                     <button class="template-btn" data-template="button">버튼</button>
                                     <button class="template-btn" data-template="card">카드</button>
@@ -1147,6 +1158,9 @@ function loadStateFromUrl() {
                                     <label class="language-radio">
                                         <input type="radio" name="language-${sector.id}" value="php"> PHP
                                     </label>
+                                    <label class="language-radio">
+                                        <input type="radio" name="language-${sector.id}" value="typescript"> Typescript
+                                    </label>
                                     <button class="run-btn">▶ 실행</button>
                                 </div>
                             </div>
@@ -1178,11 +1192,12 @@ function loadStateFromUrl() {
 
             mainContent.appendChild(sectorDiv);
 
-            // 추가됨: 복원된 섹터의 스플리터 초기화
+            // 복원된 섹터의 스플리터 초기화
             initSectorSplitter(sectorDiv);
 
-            // 추가됨: 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
-            initAceEditor(sectorDiv, sector.memo || '');
+            // 복원된 섹터에 Ace Editor 초기화 (저장된 코드 전달)
+            const initialMode = (sector.editor === 'backend') ? (sector.language || 'python') : 'html';
+            initAceEditor(sectorDiv, sector.memo || '', initialMode);
 
             // 라이브러리 선택 상태 복원
             if (sector.libraries && sector.libraries.length > 0) {
@@ -1192,6 +1207,29 @@ function loadStateFromUrl() {
                         checkbox.checked = true;
                     }
                 });
+            }
+
+            // 탭 상태 복원
+            if (sector.editor) {
+                sectorDiv.querySelectorAll('.editor-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.tab === sector.editor) {
+                        tab.classList.add('active');
+                    }
+                });
+
+                sectorDiv.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                sectorDiv.querySelector(`.${sector.editor}-content`)?.classList.add('active');
+            }
+
+            // 언어 상태 복원
+            if (sector.language) {
+                const languageInput = sectorDiv.querySelector(`.language-radio input[value="${sector.language}"]`);
+                if (languageInput) {
+                    languageInput.checked = true;
+                }
             }
 
         });
@@ -1228,7 +1266,7 @@ function renderCode(sectorElement) {
         return;
     }
 
-    // 🌟 변경: memoInput 대신 Ace 인스턴스 참조 🌟
+    // Ace 인스턴스 참조
     const aceEditor = sectorElement.aceEditorInstance;
     const resultIframe = sectorElement.querySelector('.result-iframe');
     const consoleOutput = sectorElement.querySelector('.console-output');
@@ -1326,7 +1364,7 @@ function renderCode(sectorElement) {
         <\/script>
     `;
 
-    // 2. 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
+    // 입력된 코드를 포함하는 완전한 HTML 문서 템플릿을 만듭니다.
     // 사용자가 CSS를 입력했다고 가정하고 <style> 태그로 묶습니다.
     // HTML 코드는 <body> 안에 삽입됩니다.
     const content = `
@@ -1347,12 +1385,12 @@ function renderCode(sectorElement) {
             </html>
         `;
 
-    // 3. iframe에 콘텐츠를 씁니다.// srcdoc 사용
+    // iframe에 콘텐츠를 씁니다.// srcdoc 사용
     resultIframe.srcdoc = content;
 }
 
-// --- 추가: Ace Editor 초기화 및 이벤트 연결 함수 ---
-function initAceEditor(sectorElement, initialCode) {
+// --- Ace Editor 초기화 및 이벤트 연결 함수 ---
+function initAceEditor(sectorElement, initialCode, initialMode = 'html') {
     const editorID = sectorElement.querySelector('.ace-editor-input').id;
 
     // Ace 인스턴스 생성
@@ -1386,6 +1424,8 @@ function initAceEditor(sectorElement, initialCode) {
         }, 500);
     });
 
+    // 전달받은 모드로 설정
+    updateEditorMode(editor, initialMode);
     // Ace 인스턴스를 섹터 요소에 저장하여 나중에 접근할 수 있게 함
     sectorElement.aceEditorInstance = editor;
 }
